@@ -440,7 +440,8 @@ impl EnvSelector {
         self.edit = None;
     }
 
-    #[cfg(test)]
+    /// An editor holds the edit layer (the character sheet capture's neutral
+    /// light then stays off, as the fork's isEnvironmentEditorActive).
     pub fn editing(&self) -> bool {
         self.edit.is_some()
     }

@@ -123,6 +123,8 @@ pub enum BarAction {
     /// window, or closed when it is shown (Floater.Toggle,
     /// Floater.ToggleOrBringToFront, Marketplace.Toggle; commands.xml).
     TogglePoser,
+    /// The character sheet capture's window (this build's own).
+    ToggleCharsheet,
     ToggleReportAbuse,
     ToggleMarketplaceListings,
     /// World › Environment › Use shared environments
@@ -1212,6 +1214,10 @@ fn main_menus(ui: &mut egui::Ui, p: &Palette, panels: &mut Panels, st: &StatusIn
         if menu::item_keys(ui, p, "photo-filled", aurora_i18n::tr!("photo-title"), &photo) {
             super::widgets::toggle_floater(ui.ctx(), super::snapshot::WINDOW, &mut panels.snapshot);
         }
+        // this build's own, next to the photo (the fork's World › Photo menu)
+        if menu::item(ui, p, super::charsheet::ICON, aurora_i18n::tr!("charsheet-menu")) {
+            *action = BarAction::ToggleCharsheet;
+        }
     });
     menu::submenu(ui, p, "box", aurora_i18n::tr!("common-build"), true, |ui| {
         build_menu(ui, p, action, &st.ik_keys, st.edit_particles);
@@ -2209,6 +2215,7 @@ pub fn run_command(ctx: &egui::Context, cmd: &str, panels: &mut Panels) -> BarAc
         "build" => return BarAction::Build(0),
         "ik_edit" => return BarAction::IkEdit,
         "poser" => return BarAction::TogglePoser,
+        "charsheet" => return BarAction::ToggleCharsheet,
         "profile" => return BarAction::ToggleMyProfile,
         "reporter" => return BarAction::ToggleReportAbuse,
         "teleport_history" => return BarAction::TeleportHistory,
@@ -3815,7 +3822,15 @@ mod tests {
         assert!(matches!(run_command(&ctx, "build", &mut panels), BarAction::Build(0)));
         // World › Landmark this place is no toggle there either
         assert!(matches!(run_command(&ctx, "landmark_here", &mut panels), BarAction::CreateLandmark));
-        let commands = ["profile", "build", "poser", "reporter", "marketplacelistings", "teleport_history"];
+        let commands = [
+            "profile",
+            "build",
+            "poser",
+            "reporter",
+            "marketplacelistings",
+            "teleport_history",
+            "charsheet",
+        ];
         let none = super::super::toolbar::Shown::default();
         for cmd in commands {
             assert!(super::super::toolbar::ready(cmd), "{cmd}");
@@ -3828,6 +3843,7 @@ mod tests {
             report_abuse: true,
             marketplace_listings: true,
             teleport_history: true,
+            charsheet: true,
         };
         for cmd in commands {
             assert_eq!(all.lit(cmd), Some(true), "{cmd}");

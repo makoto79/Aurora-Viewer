@@ -224,6 +224,11 @@ impl Scene {
             if !world.parcel_object_visible(idx) {
                 continue;
             }
+            // the character sheet capture: only its subject's own worn lights
+            // (the fork leaves the world's local lights out of its images)
+            if world.photo_isolation.capture().is_some() && !crate::snapshot::isolate::object_visible(world, idx) {
+                continue;
+            }
             let Some(o) = world.objects.get(idx) else {
                 continue;
             };

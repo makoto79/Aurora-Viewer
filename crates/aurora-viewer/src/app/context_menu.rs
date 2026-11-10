@@ -576,6 +576,7 @@ impl App {
             }
             CtxAction::DisplayName => self.display_name_ui.open(),
             CtxAction::HoverHeight => self.hover_height_ui.open = true,
+            CtxAction::CharacterSheet(id) => self.open_charsheet(id),
             CtxAction::ReportAbuse(target) => self.open_report_abuse(target),
             CtxAction::CreateLandmark => self.open_create_landmark(None),
             CtxAction::OpenAppearance { tab, editing } => {

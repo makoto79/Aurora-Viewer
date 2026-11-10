@@ -274,6 +274,9 @@ pub enum CtxAction {
         characters: bool,
     },
     ResetMeshLod(Uuid),
+    /// The character sheet capture with this avatar chosen (the fork's
+    /// Avatar.CharacterSheet).
+    CharacterSheet(Uuid),
     ShowAvatarTextures(Uuid),
     TakeOffClothing(u8),
     DetachAt(u8),

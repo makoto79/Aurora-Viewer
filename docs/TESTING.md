@@ -430,6 +430,8 @@ the background still applies outside screenshots.
 | `AURORA_DEMO_PHOTO_LOOK=<look>[+<look>…][:<percent>][:compare][:panel][:tab=…][:search=…][:set=…]` | The photo's looks stacked (Legacy, Aurora or a LUT), the chosen one's strength and settings, the before / after line, the filter panel |
 | `AURORA_DEMO_CONTROLS=camera\|roll\|movement\|compact\|compact-move\|classic\|views\|classic-views\|free\|free-compact` | The Controls window open on a tab, the Legacy Viewer's two windows, a view saved and given back, or driving the photo window's free camera |
 | `AURORA_DEMO_CAMERA_PRESETS=save\|apply\|object\|pick[-…]` | The viewfinder's camera presets: saved on the avatar, a place and an object, applied, or the object chosen in the scene |
+| `AURORA_DEMO_CHARSHEET=window\|preview\|run\|run-transparent\|run-portrait\|other\|other-local\|stop\|lost` | The character sheet capture: its window, the preview's shots, a full series written, someone else's avatar, a run ended early |
+| `AURORA_DEMO_CHARSHEET_DIR=<folder>` | With `AURORA_DEMO_CHARSHEET`: where its series are written (the temporary folder by default) |
 
 `AURORA_DEMO_RENDER_TEXTURE`: with demo mode and `AURORA_CAPTURE`, the capture
 frame draws the full world into a caller-owned GPU texture instead of acquiring
@@ -805,6 +807,32 @@ the entire scene does not reload all at once on its return (#1374). With
 avatar, without a black ground; built with `--profile debugging`, a table of
 the occlusion that does not match the draws stops the viewer at the first
 frame without a background.
+
+`AURORA_DEMO_CHARSHEET` (this build's own character sheet capture): at frame
+300 the window opens on our avatar (`other`, `other-local`: on the demo's
+poser peer, added at frame 280), the start delay set to 0 and the folder to
+`AURORA_DEMO_CHARSHEET_DIR` (else `aurora-charsheet-demo` in the temporary
+folder), for the session only. `window` stops there. `preview`, `other` and
+`other-local` step the preview to shots 1, 7, 13 and 20 at frames 360, 480,
+600 and 720 and end it at 840: only the avatar is drawn, over the backdrop
+colour (50 % grey) instead of the photo isolation's checkerboard, the camera
+locked, no name plate; 1 is the body from the front, 7 the head from the
+front, 13 the back of the left hand fingers up, 20 the soles from below toes
+up. The A-pose (arms lowered 40°, feet a little apart) shows on our avatar
+and on `other-local`'s peer (the local-nearby switch on, never saved), not
+on `other`'s (no consent: its own pose, the status line says why). The log
+gives `demo charsheet: preview shot <n> (<label>) at frame <f>`: capture
+those frames with `AURORA_CAPTURE_FRAMES`. `run` starts a series at frame
+330 (`run-transparent`: PNGs with alpha; `run-portrait`: body shots 1152 x
+2016 at 1536): neutral light, world frozen, one `charsheet: shot <i>/20
+drawn` line per shot, then `demo charsheet: series done (Some(Completed)):
+20 image(s)`, a folder `avatar_<date>_<time>` (the demo has no account
+name) with the 20 PNGs, `avatar_sheet.png` (one row per group) and
+`sheet_manifest.json`; the camera, sky and moving world come back. `stop`
+presses Stop at shot 8, `lost` ends the run as an avatar gone at shot 5:
+the partial series still gets its contact sheet and manifest. Look at every
+PNG: nothing cut off, head and feet inside, hair edges clean on the
+transparent ones.
 
 `AURORA_DEMO_PHOTO_LOOK` (with `AURORA_DEMO_SNAPSHOT`, which opens the photo
 mode): at frame 600 the photo takes those looks, stacked in the order

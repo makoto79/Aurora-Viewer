@@ -46,6 +46,10 @@ pub struct Isolation {
     /// Bumped when what is drawn changes: the scene flags every object
     /// again.
     pub version: u64,
+    /// The character sheet capture's subject (`charsheet`), in its preview
+    /// and its run: drawn alone on an empty background, whatever the photo
+    /// mode's own choice, which comes back as it was. Not saved.
+    capture: Option<Uuid>,
 }
 
 impl Default for Isolation {
@@ -58,6 +62,7 @@ impl Default for Isolation {
             picking: false,
             open: false,
             version: 0,
+            capture: None,
         }
     }
 }
@@ -65,16 +70,19 @@ impl Default for Isolation {
 impl Isolation {
     /// The choice decides what is drawn now.
     pub fn applied(&self) -> bool {
-        self.open && !self.picking && self.mode != Mode::Off
+        self.capture.is_some() || self.open && !self.picking && self.mode != Mode::Off
     }
 
     /// The background is left empty now (and the photo keeps its alpha).
     pub fn empty_background(&self) -> bool {
-        self.applied() && self.transparent
+        self.capture.is_some() || self.applied() && self.transparent
     }
 
     /// Whether the avatar or linkset whose root is `root` is drawn.
     pub fn root_visible(&self, root: &Uuid) -> bool {
+        if let Some(subject) = &self.capture {
+            return root == subject;
+        }
         if !self.applied() {
             return true;
         }
@@ -168,6 +176,18 @@ impl Isolation {
                 self.bump();
             }
         }
+    }
+
+    /// The character sheet capture's subject, or None when it ends.
+    pub fn set_capture(&mut self, subject: Option<Uuid>) {
+        if self.capture != subject {
+            self.capture = subject;
+            self.bump();
+        }
+    }
+
+    pub fn capture(&self) -> Option<Uuid> {
+        self.capture
     }
 
     fn choice_changed(&mut self) {
@@ -279,5 +299,39 @@ mod tests {
             (7, Mode::Own, &[id(4)][..]),
             "the mode and the choices kept"
         );
+    }
+
+    #[test]
+    fn the_character_sheet_capture_draws_its_subject_alone() {
+        // over a closed photo mode
+        let mut iso = Isolation::default();
+        iso.set_capture(Some(id(5)));
+        assert!(iso.applied() && iso.empty_background());
+        assert!(iso.root_visible(&id(5)) && !iso.root_visible(&id(9)));
+        assert_eq!(iso.version, 1);
+        iso.set_capture(Some(id(5)));
+        assert_eq!(iso.version, 1, "the same subject again: nothing changes");
+        // over an open photo mode with its own choice and an opaque background
+        let mut iso = opened();
+        iso.set_mode(Mode::Chosen);
+        iso.toggle(id(1));
+        iso.set_transparent(false);
+        let before = iso.version;
+        iso.set_capture(Some(id(7)));
+        assert!(!iso.root_visible(&id(1)) && iso.root_visible(&id(7)));
+        assert!(iso.empty_background(), "always on an empty background");
+        iso.set_picking(true);
+        assert!(
+            !iso.root_visible(&id(1)),
+            "the choosing does not show everything during the capture"
+        );
+        iso.set_picking(false);
+        iso.set_capture(None);
+        assert_eq!(iso.version, before + 2);
+        assert!(
+            iso.root_visible(&id(1)) && !iso.root_visible(&id(7)),
+            "the photo mode's choice back"
+        );
+        assert!(!iso.empty_background());
     }
 }

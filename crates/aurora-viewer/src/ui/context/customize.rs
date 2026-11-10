@@ -265,6 +265,7 @@ fn action_key(action: &CtxAction) -> String {
         CtxAction::Pathfinding { characters: false, .. } => "RegionObjects",
         CtxAction::Pathfinding { characters: true, .. } => "PathfindingCharacters",
         CtxAction::ResetMeshLod(..) => "ResetMeshLod",
+        CtxAction::CharacterSheet(..) => "CharacterSheet",
         CtxAction::ShowAvatarTextures(..) => "ShowAvatarTextures",
         CtxAction::TakeOffClothing(..) => "TakeOffClothing",
         CtxAction::DetachAt(..) => "DetachAt",
