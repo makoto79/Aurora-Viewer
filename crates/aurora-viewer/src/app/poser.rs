@@ -23,7 +23,7 @@ impl App {
             self.world.preview_shape(Some(values));
         }
         // bridge-* modes show the subject menu's bridge hints for the same peer.
-        let fixture = mode.starts_with("consent-") || mode.starts_with("bridge-");
+        let fixture = mode.starts_with("consent-") || mode.starts_with("bridge-") || mode == "local-nearby";
         if fixture
             && self.frame_count == 400
             && let Some(handle) = self.world.main_region
@@ -76,6 +76,10 @@ impl App {
                         rights_has: 1,
                     });
                 }
+                // local-nearby: the "pose without asking" switch on, never saved
+                if mode == "local-nearby" && self.frame_count == 440 {
+                    self.settings.pose_requests.local_nearby = true;
+                }
                 if mode.starts_with("consent-") {
                     let mut consent = std::mem::take(&mut self.world.poser_consent);
                     consent.demo(&self.world, peer, mode, self.frame_count);
@@ -85,7 +89,7 @@ impl App {
                     self.egui_ctx
                         .data_mut(|d| d.insert_temp(egui::Id::unique("poser-subjects-open"), true));
                 }
-                if self.frame_count == 490 && (mode == "consent-accept" || mode == "consent-withdraw") {
+                if self.frame_count == 490 && (mode == "consent-accept" || mode == "consent-withdraw" || mode == "local-nearby") {
                     self.ik_editor.select_pose_subject(&self.world, peer);
                 }
             }

@@ -381,7 +381,10 @@ impl Editor {
             self.commit_poser_manipulation(rig, &frame, false);
         }
         if frame == 510
-            && (mode == "poser-animesh" || mode == "poser-consent-accept" || mode == "poser-consent-withdraw")
+            && (mode == "poser-animesh"
+                || mode == "poser-consent-accept"
+                || mode == "poser-consent-withdraw"
+                || mode == "poser-local-nearby")
             && let Some(frame) = self.editor_frame(world)
         {
             let rig = &world.avatar_lib.rig;

@@ -209,3 +209,44 @@ fn reordered_withdraw_and_cancel_cannot_reactivate_a_finished_request() {
     state.cancel(peer);
     assert!(state.out.iter().all(|(_, kind, _)| *kind != PoseKind::Request));
 }
+#[test]
+fn local_nearby_is_off_by_default_and_poses_without_asking_or_sending() {
+    let (mut world, peer, mut state) = fixture();
+    assert!(!state.preferences.local_nearby);
+    assert!(!state.can_pose(&world, peer) && !state.local_only(&world, peer));
+    state.preferences.local_nearby = true;
+    assert!(state.can_pose(&world, peer) && state.local_only(&world, peer));
+    // Nothing is asked and nothing travels: the pose stays on this screen.
+    assert!(matches!(state.status(peer), Status::Ask));
+    assert!(state.commands(None).is_empty() && state.out.is_empty());
+    // An accepted request is no longer "local only".
+    assert!(state.request(&world, peer, Instant::now()));
+    let id = state.outgoing[&peer].id;
+    state.receive(&world, &wire(id, PoseKind::Accept, peer), Instant::now());
+    assert!(state.can_pose(&world, peer) && !state.local_only(&world, peer));
+    // Range, region and mutes still apply.
+    let index = world.objects.index_of_uuid(&peer).unwrap();
+    world.objects.get_mut(index).unwrap().position += glam::Vec3::splat(100.0);
+    assert!(!state.can_pose(&world, peer));
+}
+#[test]
+fn local_nearby_still_refuses_muted_avatars_and_other_regions() {
+    let (mut world, peer, mut state) = fixture();
+    state.preferences.local_nearby = true;
+    use crate::world::mutes::{Mute, MuteType};
+    world
+        .mutes
+        .add(
+            Mute {
+                id: peer,
+                name: "Fixture resident".into(),
+                kind: MuteType::Agent,
+                flags: 0,
+            },
+            0,
+        )
+        .unwrap();
+    assert!(!state.can_pose(&world, peer));
+    world.main_region = Some(2);
+    assert!(!state.can_pose(&world, peer));
+}
