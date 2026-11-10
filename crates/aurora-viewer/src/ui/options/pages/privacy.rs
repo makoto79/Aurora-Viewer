@@ -162,6 +162,12 @@ pub(super) fn page(cx: &mut Cx) {
             (crate::world::poser_consent::Policy::Nobody, tr!("poser-policy-nobody"), false),
         ],
     );
+    // Custom (ozlt-main) only: pose nearby avatars on this screen without asking.
+    cx.toggle(
+        tr!("poser-local-nearby"),
+        tr!("poser-local-nearby-hint"),
+        &field!(pose_requests.local_nearby),
+    );
     // "Only friends and groups can call or IM me" (voice_call_friends_only_check,
     // VoiceCallsFriendsOnly; its hint is the FriendsAndGroupsOnly notice)
     cx.group(tr!("ui-options-calls-and-messages"), |cx| {

@@ -29,6 +29,10 @@ pub enum Policy {
 pub struct Preferences {
     pub policy: Policy,
     pub blocked: HashSet<Uuid>,
+    /// Custom (ozlt-main) only, never for upstream: pose any nearby avatar on
+    /// this screen without asking. The pose never leaves the viewer, as in the
+    /// fork's Poser (FSFloaterPoser, havePermissionToAnimateOtherAvatar).
+    pub local_nearby: bool,
 }
 #[derive(Clone, Copy)]
 pub struct Request {
@@ -192,7 +196,12 @@ impl State {
         }
     }
     pub fn can_pose(&self, world: &World, peer: Uuid) -> bool {
-        self.accepted.contains_key(&peer) && nearby(world, peer)
+        (self.accepted.contains_key(&peer) || self.preferences.local_nearby) && nearby(world, peer)
+    }
+    /// True when `peer` can be posed only because "local nearby" is on, with
+    /// no accepted request: the menu then offers a direct local pose.
+    pub fn local_only(&self, world: &World, peer: Uuid) -> bool {
+        self.preferences.local_nearby && !self.accepted.contains_key(&peer) && nearby(world, peer)
     }
     pub fn cancel(&mut self, peer: Uuid) {
         if let Some(r) = self.outgoing.remove(&peer) {

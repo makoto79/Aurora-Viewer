@@ -140,6 +140,17 @@ Withdrawal, disappearance, region changes, teleport and logout invalidate
 the relevant access. The requester immediately drops an invalid pose and
 receives a notice.
 
+### Pose nearby avatars without asking (custom, not upstream)
+
+Privacy > "Pose nearby avatars on my screen without asking" (off by default,
+`pose_requests.local_nearby`) lets the poser pose any nearby avatar without a
+request: the subject menu shows **Pose (this screen only)** instead of Ask.
+Same limits as an accepted request (within 50 m, same region, unmuted); an
+accepted request keeps its own button. The pose never leaves the viewer: no
+request, answer or pose data is sent, and nobody else sees it. It does not
+change who can pose you (Who can ask to pose my avatar). Demo:
+`AURORA_DEMO_POSER=local-nearby`.
+
 The bridge is version **1.34**, which triggers the existing reprovisioning
 flow. The new service lives in `query.lsl`, separately from the movement
 controller. HTTPS commands use the existing validated query endpoint and

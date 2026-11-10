@@ -239,7 +239,22 @@ impl Editor {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.add_space(6.0);
                     let size = egui::vec2(0.0, 24.0);
+                    let local = world.poser_consent.local_only(world, peer);
                     match status {
+                        _ if local => {
+                            if widgets::action_button(
+                                ui,
+                                p,
+                                "check",
+                                aurora_i18n::text("poser-local-pose"),
+                                widgets::ActionKind::Primary,
+                                size,
+                            )
+                            .clicked()
+                            {
+                                pick = Some(peer);
+                            }
+                        }
                         Status::Ask => {
                             if widgets::action_button_if(
                                 ui,
