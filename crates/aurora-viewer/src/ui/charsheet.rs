@@ -73,7 +73,7 @@ impl CharsheetUi {
         }
         let mut open = self.open;
         let screen = ctx.content_rect();
-        let size = Vec2::new(420.0, 700.0);
+        let size = Vec2::new(420.0, 724.0);
         Floater::new(
             WINDOW,
             aurora_i18n::tr!("charsheet-title"),
@@ -83,7 +83,14 @@ impl CharsheetUi {
         .framed_header(ICON)
         .show(ctx, p, &mut open, |ui| {
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-                self.body(ui, p, s, view, &mut actions);
+                // (a few pixels off the left edge: the section headers and
+                // the avatar list sat flush against it)
+                egui::Frame::NONE
+                    .inner_margin(egui::Margin {
+                        left: 6,
+                        ..Default::default()
+                    })
+                    .show(ui, |ui| self.body(ui, p, s, view, &mut actions));
             });
         });
         if !open {
