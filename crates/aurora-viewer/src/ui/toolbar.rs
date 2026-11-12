@@ -239,6 +239,8 @@ pub struct Shown {
     pub marketplace_listings: bool,
     /// Floater.IsOpen fs_teleporthistory: Places on its history tab.
     pub teleport_history: bool,
+    /// Floater.IsOpen avatar_sheet: the character sheet capture.
+    pub charsheet: bool,
 }
 
 impl Shown {
@@ -251,6 +253,7 @@ impl Shown {
             "reporter" => self.report_abuse,
             "marketplacelistings" => self.marketplace_listings,
             "teleport_history" => self.teleport_history,
+            "charsheet" => self.charsheet,
             _ => return None,
         })
     }

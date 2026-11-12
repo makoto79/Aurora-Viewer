@@ -48,6 +48,7 @@ mod blender_shape;
 mod buy_currency;
 mod buy_land;
 mod camera_presets;
+mod charsheet;
 mod chat_commands;
 mod chat_import;
 mod click_pick;
@@ -763,6 +764,8 @@ pub struct App {
     /// Inventory generation whose Favorites / Landmarks folders were asked for.
     landmark_folders_checked: u64,
     hover_height_ui: ui::hover_height::HoverHeightUi,
+    /// The character sheet capture (`app/charsheet.rs`).
+    charsheet: charsheet::Charsheet,
     /// Debug Settings (Advanced.ShowDebugSettings).
     debug_settings_ui: ui::debug_settings::DebugSettingsUi,
     debug_settings_demo_done: bool,
@@ -1705,6 +1708,7 @@ impl App {
             create_landmark_ui: Default::default(),
             landmark_folders_checked: u64::MAX,
             hover_height_ui: Default::default(),
+            charsheet: Default::default(),
             debug_settings_ui: Default::default(),
             debug_settings_demo_done: false,
             quick_prefs_ui: Default::default(),
@@ -9313,6 +9317,8 @@ impl App {
         let (w, h) = gfx.renderer.size();
         // a photo drawn at its own size this frame: its proportions, the
         // part of it this frame draws, the height its details are chosen for
+        // (the character sheet capture asks its shots first)
+        self.charsheet_tick(&gfx.renderer);
         self.photo_update(&gfx.renderer);
         self.viewfinder_frame(&mut gfx.renderer);
         self.photo_isolate_frame(&mut gfx.renderer);
@@ -9331,6 +9337,9 @@ impl App {
         // ---- agent / camera
         let typing = self.egui_ctx.egui_wants_keyboard_input();
         self.update_move_input(typing, dt);
+        // the character sheet capture holds the camera on its shot and the
+        // avatar where it stands
+        self.charsheet_camera();
         if self.demo
             && let Ok(mode) = std::env::var("AURORA_DEMO_GROUNDING")
             && let Some(input) = crate::demo::grounding::scripted_input(&mode, self.frame_count)
@@ -9821,6 +9830,7 @@ impl App {
                 self.settings.save();
             }
             self.scene.poser = self.ik_editor.pose_layers(&self.world);
+            self.charsheet_pose_layer();
             self.ik_editor.tick_pose_storage(&self.scene.jobs, &self.egui_ctx, &self.world);
             if !self.scene.poser.is_empty() {
                 self.scene.ik_edit = Default::default();
@@ -10720,6 +10730,8 @@ impl App {
             },
             // the photo's isolation, "show only" on an empty background
             cutout: self.world.photo_isolation.empty_background(),
+            // the character sheet's preview shows its backdrop colour
+            cutout_backdrop: self.charsheet_backdrop(),
             look: None,
         };
         // a photo's look, or the live view's in the photo mode
@@ -13784,6 +13796,7 @@ impl App {
             BarAction::Portals => {
                 ui::widgets::open_floater(&self.egui_ctx, "portals", &mut self.portal_ui.open);
             }
+            BarAction::ToggleCharsheet => self.toggle_charsheet(),
             BarAction::Build(t) => {
                 match t {
                     1 => self.build.open_build(crate::build::Tool::Edit),
@@ -17364,6 +17377,7 @@ impl App {
                 // an `objectim` link clicked (LLInspectRemoteObject)
                 ui::remote_object::show(&ctx, &p, &self.world, &mut self.remote_object);
                 self.photo_ui(&ctx, &p, projector, renderer);
+                self.charsheet_window(&ctx, &p);
                 self.controls_window(&ctx, &p);
                 self.movelock_window(&ctx, &p);
                 self.follow_window(&ctx, &p);
@@ -17520,6 +17534,7 @@ impl App {
                         && self
                             .places_ui
                             .history_shown(self.settings.classic_places || self.places_ui.demo_classic),
+                    charsheet: self.charsheet.ui.open,
                 };
                 self.toolbar_ui.chat_bar_active = self.chat_ui.bar_shown();
                 self.toolbar_ui.friends_only_active = self.world.friends_only();

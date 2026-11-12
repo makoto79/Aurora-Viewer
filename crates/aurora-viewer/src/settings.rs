@@ -521,6 +521,8 @@ pub struct Settings {
     pub parcel_music_accounts: std::collections::HashSet<uuid::Uuid>,
     /// Photo window (Firestorm's snapshot floater settings).
     pub snapshot: crate::snapshot::Settings,
+    /// Character sheet capture (`charsheet`; the fork's FSAvatarSheet*).
+    pub charsheet: crate::charsheet::Settings,
     /// Depth of field (Preferences › Graphics).
     pub dof: crate::dof::Settings,
     pub shape_show_hints: bool,
@@ -1995,6 +1997,7 @@ impl Default for Settings {
             friends_only: Default::default(),
             parcel_music_accounts: Default::default(),
             snapshot: Default::default(),
+            charsheet: Default::default(),
             dof: Default::default(),
             loading_backdrop: true,
             mouse_sensitivity: 1.0,
@@ -2892,6 +2895,7 @@ impl Settings {
             toolbar.sanitize();
         }
         self.snapshot.sanitize();
+        self.charsheet = std::mem::take(&mut self.charsheet).sanitized();
         self.dof.sanitize();
         self.exposure = self.exposure.clamp(0.25, 4.0);
         self.screen_indirect_intensity = if self.screen_indirect_intensity.is_finite() {

@@ -23,6 +23,7 @@ mod cache;
 mod cache_key;
 mod cache_location;
 mod camera;
+mod charsheet;
 mod cli;
 mod cmdline;
 mod colorblind;

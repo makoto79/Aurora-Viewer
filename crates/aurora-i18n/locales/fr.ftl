@@ -13508,3 +13508,103 @@ ui-options-attached-particles-hint = Affiche les particules de ce que portent le
 # Preferences › Graphics: progressive draw distance (FSRenderFarClipStepping)
 ui-options-draw-distance-stepping = Distance d'affichage progressive
 ui-options-draw-distance-stepping-hint = Après la connexion et après une téléportation vers une autre région, la distance d'affichage part de 32 m et double jusqu'à la vôtre, pour que ce qui est proche se charge d'abord.
+
+# Character sheet capture (this build's own; the fork's floater_avatar_sheet.xml)
+charsheet-title = Planche de personnage
+charsheet-menu = Planche de personnage
+charsheet-menu-context = Planche de personnage…
+charsheet-section-avatar = Avatar
+charsheet-no-avatar = Aucun avatar choisi
+charsheet-you = { $name } (vous)
+charsheet-info = Taille { $height } m · Squelette complet
+charsheet-info-incomplete = Squelette incomplet (encore en chargement ?)
+charsheet-section-setup = Préparation
+charsheet-a-pose = Mettre l'avatar en pose A
+charsheet-a-pose-tip = Localement seulement : personne d'autre ne voit la pose. Bras légèrement écartés, paumes vers le bas, pour que les mains et les côtés du corps restent visibles. L'avatar de quelqu'un d'autre n'est posé que là où le Poser peut le poser.
+charsheet-neutral-light = Éclairage neutre
+charsheet-neutral-light-tip = Remplace le ciel par une lumière du jour uniforme pendant la capture, pour que la nuit ou une skybox sombre ne se retrouve pas dans les images.
+charsheet-background = Fond
+charsheet-background-tip = Couleur unie derrière l'avatar.
+charsheet-transparent = Transparent
+charsheet-transparent-tip = Écrit des images PNG avec un canal alpha au lieu de la couleur de fond.
+charsheet-section-framing = Cadrage
+charsheet-zoom = Zoom
+charsheet-zoom-tip = Au-dessus de 100 % la caméra se rapproche, en dessous elle s'éloigne. Vaut pour toutes les prises.
+charsheet-height-offset = Décalage en hauteur
+charsheet-height-offset-tip = Monte (positif) ou descend le cadrage du corps entier, pour des cheveux, chapeaux ou chaussures qui dépassent loin du squelette. Les prises de la tête ne changent pas.
+charsheet-section-output = Sortie
+charsheet-folder-default = { $folder } (par défaut)
+charsheet-browse = Parcourir
+charsheet-folder-tip = Chaque série va dans son propre dossier, nommé d'après l'avatar et l'heure de la capture.
+charsheet-folder-reset = Revenir au dossier par défaut
+charsheet-folder-dialog = Dossier des planches de personnage
+charsheet-resolution = Résolution
+charsheet-portrait = Prises du corps entier en format portrait
+charsheet-portrait-tip = Un avatar debout remplit moins de la moitié d'une image carrée : le format portrait utilise mieux la place.
+charsheet-contact-sheet = Écrire aussi une planche contact de toutes les images
+charsheet-contact-sheet-tip = Une image de plus avec toutes les prises en grille, pour les outils qui ne prennent que quelques images de référence.
+charsheet-high-quality = Haute qualité
+charsheet-high-quality-tip = Dessine chaque image au double de sa taille puis la réduit : des bords plus lisses, environ quatre fois le temps GPU.
+charsheet-section-capture = Capture
+charsheet-image-count = { $count ->
+    [one] { $count } image
+   *[other] { $count } images
+    }
+charsheet-preview-prev = Précédente
+charsheet-preview-next = Suivante
+charsheet-preview-tip = Place la caméra sur une prise sans capturer : seul l'avatar choisi est dessiné.
+charsheet-preview-end = Terminer l'aperçu
+charsheet-preview-end-tip = Rend la caméra (Échap aussi).
+charsheet-preview-step = { $index }/{ $total } · { $shot }
+charsheet-camera-locked = La caméra est verrouillée pendant l'aperçu : Terminer l'aperçu ou Échap la rend.
+charsheet-capture = Capturer
+charsheet-stop = Arrêter
+charsheet-delay = Délai de départ
+charsheet-delay-tip = Compte à rebours avant la première image.
+charsheet-open-folder = Ouvrir le dossier
+charsheet-progress = { $done } sur { $total }
+charsheet-preview-status = Aperçu du cadrage : { $shot }. Seul l'avatar choisi est dessiné.
+charsheet-preparing = Préparation de la capture…
+charsheet-countdown = Début dans { $seconds }…
+charsheet-capturing = Image { $index }/{ $total } · { $shot }
+charsheet-done = { $count ->
+    [one] Terminé : { $count } image écrite dans { $folder }
+   *[other] Terminé : { $count } images écrites dans { $folder }
+    }
+charsheet-stopped = { $count ->
+    [one] Capture arrêtée : { $count } image enregistrée dans { $folder }
+   *[other] Capture arrêtée : { $count } images enregistrées dans { $folder }
+    }
+charsheet-aborted = Capture arrêtée.
+charsheet-avatar-lost = { $count ->
+    [one] Capture arrêtée, l'avatar est parti : { $count } image enregistrée dans { $folder }
+   *[other] Capture arrêtée, l'avatar est parti : { $count } images enregistrées dans { $folder }
+    }
+charsheet-teleport = { $count ->
+    [one] Capture arrêtée par une téléportation : { $count } image enregistrée dans { $folder }
+   *[other] Capture arrêtée par une téléportation : { $count } images enregistrées dans { $folder }
+    }
+charsheet-write-failed = Les images ne peuvent pas être écrites : { $error }
+charsheet-measure-failed = L'avatar ne peut pas être mesuré. Est-il entièrement chargé ?
+charsheet-pose-not-allowed = Cet avatar ne peut pas être posé ici : sa pose actuelle est utilisée.
+charsheet-poser-active = Le Poser pose cet avatar : sa pose est utilisée telle quelle.
+charsheet-light-unavailable = L'éclairage neutre n'est pas disponible tant qu'un éditeur d'environnement est ouvert : le ciel actuel est utilisé.
+charsheet-photo-window-busy = La fenêtre Photo ne peut pas s'ouvrir pendant une capture de planche de personnage.
+charsheet-group-body = Corps entier
+charsheet-group-head = Tête
+charsheet-group-hands = Main
+charsheet-group-feet = Pieds
+charsheet-side-left = gauche
+charsheet-side-right = droite
+charsheet-view-back = dos
+charsheet-view-palm = paume
+charsheet-view-bottom = par-dessous
+charsheet-view-outer = côté extérieur
+charsheet-dir-front = face
+charsheet-dir-front-left = avant gauche
+charsheet-dir-left = gauche
+charsheet-dir-back-left = arrière gauche
+charsheet-dir-back = dos
+charsheet-dir-back-right = arrière droit
+charsheet-dir-right = droite
+charsheet-dir-front-right = avant droit

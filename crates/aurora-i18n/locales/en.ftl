@@ -13512,3 +13512,103 @@ ui-options-attached-particles-hint = Draw the particles of what avatars wear: sp
 # Preferences › Graphics: progressive draw distance (FSRenderFarClipStepping)
 ui-options-draw-distance-stepping = Progressive draw distance
 ui-options-draw-distance-stepping-hint = After logging in and after a teleport to another region, the draw distance starts at 32 m and doubles back up to yours, so that what is near loads first.
+
+# Character sheet capture (this build's own; the fork's floater_avatar_sheet.xml)
+charsheet-title = Character Sheet Capture
+charsheet-menu = Character Sheet Capture
+charsheet-menu-context = Character Sheet Capture…
+charsheet-section-avatar = Avatar
+charsheet-no-avatar = No avatar selected
+charsheet-you = { $name } (you)
+charsheet-info = Height { $height } m · Skeleton complete
+charsheet-info-incomplete = Skeleton incomplete (still loading?)
+charsheet-section-setup = Setup
+charsheet-a-pose = Put the avatar into an A-pose
+charsheet-a-pose-tip = Local only: nobody else sees the pose. Arms slightly spread, palms down, so the hands and the sides of the body stay visible. Someone else's avatar is posed only where the Poser may pose it.
+charsheet-neutral-light = Neutral lighting
+charsheet-neutral-light-tip = Replaces the sky with even daylight while capturing, so that night or a dark skybox does not end up in the images.
+charsheet-background = Background
+charsheet-background-tip = Plain backdrop colour behind the avatar.
+charsheet-transparent = Transparent
+charsheet-transparent-tip = Writes PNG images with an alpha channel instead of the backdrop colour.
+charsheet-section-framing = Framing
+charsheet-zoom = Zoom
+charsheet-zoom-tip = Above 100 % the camera comes closer, below 100 % it moves away. Applies to every shot.
+charsheet-height-offset = Height offset
+charsheet-height-offset-tip = Moves the full body framing up (positive) or down, for hair, hats or shoes reaching far beyond the skeleton. Head shots are not affected.
+charsheet-section-output = Output
+charsheet-folder-default = { $folder } (default)
+charsheet-browse = Browse
+charsheet-folder-tip = Each series goes into its own folder, named after the avatar and the time of the capture.
+charsheet-folder-reset = Back to the default folder
+charsheet-folder-dialog = Folder for character sheets
+charsheet-resolution = Resolution
+charsheet-portrait = Full body shots in portrait format
+charsheet-portrait-tip = A standing avatar fills less than half of a square image: portrait format uses the space better.
+charsheet-contact-sheet = Also write a contact sheet of all images
+charsheet-contact-sheet-tip = One extra image with every shot in a grid, for tools that take only a few reference images.
+charsheet-high-quality = High quality
+charsheet-high-quality-tip = Draws each image at twice its size and reduces it: smoother edges, about four times the GPU time.
+charsheet-section-capture = Capture
+charsheet-image-count = { $count ->
+    [one] { $count } image
+   *[other] { $count } images
+    }
+charsheet-preview-prev = Previous
+charsheet-preview-next = Next
+charsheet-preview-tip = Moves the camera to a shot without capturing: only the chosen avatar is drawn.
+charsheet-preview-end = End preview
+charsheet-preview-end-tip = Gives the camera back (Esc does too).
+charsheet-preview-step = { $index }/{ $total } · { $shot }
+charsheet-camera-locked = The camera is locked during the preview: End preview or Esc gives it back.
+charsheet-capture = Capture
+charsheet-stop = Stop
+charsheet-delay = Start delay
+charsheet-delay-tip = Countdown before the first image.
+charsheet-open-folder = Open folder
+charsheet-progress = { $done } of { $total }
+charsheet-preview-status = Framing preview: { $shot }. Only the chosen avatar is drawn.
+charsheet-preparing = Preparing the capture…
+charsheet-countdown = Starting in { $seconds }…
+charsheet-capturing = Image { $index }/{ $total } · { $shot }
+charsheet-done = { $count ->
+    [one] Done: { $count } image written to { $folder }
+   *[other] Done: { $count } images written to { $folder }
+    }
+charsheet-stopped = { $count ->
+    [one] Capture stopped: { $count } image saved in { $folder }
+   *[other] Capture stopped: { $count } images saved in { $folder }
+    }
+charsheet-aborted = Capture stopped.
+charsheet-avatar-lost = { $count ->
+    [one] Capture stopped, the avatar is gone: { $count } image saved in { $folder }
+   *[other] Capture stopped, the avatar is gone: { $count } images saved in { $folder }
+    }
+charsheet-teleport = { $count ->
+    [one] Capture stopped by a teleport: { $count } image saved in { $folder }
+   *[other] Capture stopped by a teleport: { $count } images saved in { $folder }
+    }
+charsheet-write-failed = The images cannot be written: { $error }
+charsheet-measure-failed = The avatar cannot be measured. Is it fully loaded?
+charsheet-pose-not-allowed = This avatar may not be posed here: its current pose is used.
+charsheet-poser-active = The Poser poses this avatar: its pose is used as it is.
+charsheet-light-unavailable = Neutral lighting is not available while an environment editor is open: the current sky is used.
+charsheet-photo-window-busy = The Photo window cannot open during a character sheet capture.
+charsheet-group-body = Full body
+charsheet-group-head = Head
+charsheet-group-hands = Hand
+charsheet-group-feet = Feet
+charsheet-side-left = left
+charsheet-side-right = right
+charsheet-view-back = back
+charsheet-view-palm = palm
+charsheet-view-bottom = from below
+charsheet-view-outer = outer side
+charsheet-dir-front = front
+charsheet-dir-front-left = front left
+charsheet-dir-left = left
+charsheet-dir-back-left = back left
+charsheet-dir-back = back
+charsheet-dir-back-right = back right
+charsheet-dir-right = right
+charsheet-dir-front-right = front right

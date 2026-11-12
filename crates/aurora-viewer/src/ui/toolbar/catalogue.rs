@@ -74,6 +74,8 @@ pub const COMMANDS: &[Command] = commands![
     "name_tags", "label-filled", "ui-bars-immersive-hide-tags", true;
     // Aurora's own: the photo reel's quick view, the session's photos
     "photo_roll", "carousel-horizontal-filled", "toolbar-command-photo-roll", true;
+    // this build's own: the character sheet capture (charsheet)
+    "charsheet", "id-filled", "charsheet-title", true;
     // Firestorm's, not in Aurora yet
     "avatar", "user-circle", "toolbar-command-avatar", false;
     "destinations", "map-2", "toolbar-command-destinations", false;

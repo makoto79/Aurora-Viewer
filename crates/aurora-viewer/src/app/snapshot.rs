@@ -51,6 +51,9 @@ pub(super) enum Purpose {
     Postcard,
     /// An outfit's picture, for the image request (#2716).
     Outfit(Uuid),
+    /// Shot i of a character sheet series (`app/charsheet.rs`): its own
+    /// size, always cut out, no interface, HUDs or looks.
+    Sheet(usize),
 }
 
 /// The side of an outfit's picture as it is drawn, reduced to 256 afterwards.
@@ -786,6 +789,7 @@ impl App {
                 self.inventory_images.photo = None;
                 self.prepare_inventory_photo(request, job.size.0, job.size.1, job.pixels);
             }
+            Purpose::Sheet(i) => self.charsheet_pixels(i, job.size, job.pixels),
         }
     }
 
@@ -1080,11 +1084,14 @@ impl App {
     /// Start a photo of the destination's size.
     pub(super) fn photo_job(&mut self, purpose: Purpose, renderer: &Renderer) {
         let window = renderer.size();
-        let outfit = matches!(purpose, Purpose::Outfit(_));
-        let full = if outfit {
-            (OUTFIT_PHOTO_SIDE, OUTFIT_PHOTO_SIDE)
-        } else {
-            self.photo_size(window)
+        let sheet = matches!(purpose, Purpose::Sheet(_));
+        // (a character sheet's shot is like an outfit's picture: what it
+        // shows, never the window's interface, HUDs or looks)
+        let outfit = matches!(purpose, Purpose::Outfit(_)) || sheet;
+        let full = match purpose {
+            Purpose::Outfit(_) => (OUTFIT_PHOTO_SIDE, OUTFIT_PHOTO_SIDE),
+            Purpose::Sheet(i) => self.charsheet_shot_size(i),
+            _ => self.photo_size(window),
         };
         let s = &self.settings.snapshot;
         let size = if purpose == Purpose::Preview {
@@ -1098,7 +1105,11 @@ impl App {
             full
         };
         // the photo quality draws a photo (not its preview) at twice its size
-        let supersample = if purpose != Purpose::Preview && !outfit && self.settings.photo_held.is_some() {
+        let supersample = if (purpose != Purpose::Preview && !outfit && self.settings.photo_held.is_some())
+            || (sheet && self.settings.charsheet.supersample)
+        {
+            // (the character sheet's "High quality": tiled like any large
+            // photo when twice its size is more than one pass)
             snapshot::quality::supersample(size)
         } else {
             1
@@ -1145,7 +1156,7 @@ impl App {
             huds: !outfit && s.huds,
             started: Instant::now(),
             supersample,
-            cutout: self.world.photo_isolation.empty_background(),
+            cutout: sheet || self.world.photo_isolation.empty_background(),
             looks: Vec::new(),
             focus: self.snapshots.look_focus,
             photo: full,
@@ -2348,6 +2359,9 @@ LUT_3D_SIZE {n}
     /// closes, the free camera comes back, the first person view ends, then
     /// the photo mode closes.
     pub(super) fn photo_escape(&mut self) -> bool {
+        if self.charsheet_escape() {
+            return true;
+        }
         if self.viewfinder_on() {
             let v = &mut self.snapshots.vf;
             if v.countdown.is_some() {
@@ -2504,6 +2518,16 @@ LUT_3D_SIZE {n}
     /// The photo's quick light (`snapshot::light`) while the window is open;
     /// the user's own as soon as it closes.
     fn photo_light(&mut self) {
+        // the character sheet capture's neutral light, while it holds the
+        // light (the Photo window is closed then); its end gives the user's
+        // back with the usual fade (close_photo below)
+        if !self.panels.snapshot
+            && let Some(choice) = self.charsheet_light()
+        {
+            self.world.eep.set_photo(choice);
+            self.scene.attached_lights = true;
+            return;
+        }
         if !self.panels.snapshot {
             self.snapshots.ui.light = snapshot::light::PhotoLight::default();
             // (the user's own fades back in)

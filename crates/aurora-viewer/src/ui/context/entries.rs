@@ -801,6 +801,12 @@ fn avatar_groups(ui: &mut Builder, f: &Facts, id: Uuid, attachment: Option<Uuid>
             ui.item("code", aurora_i18n::tr!("ui-context-script-information"), CtxAction::ScriptInfo(id));
         },
     );
+    // the fork's "Character Sheet Capture…" above the resets (menu_avatar_other.xml)
+    ui.item(
+        crate::ui::charsheet::ICON,
+        aurora_i18n::tr!("charsheet-menu-context"),
+        CtxAction::CharacterSheet(id),
+    );
     ui.submenu("restore", aurora_i18n::tr!("ui-context-reset-options"), true, |ui| {
         reset_skeleton_items(ui, id);
         ui.item(
@@ -1036,6 +1042,11 @@ fn appearance_submenu(ui: &mut Builder, f: &Facts) {
             aurora_i18n::tr!("ui-context-hover-height"),
             f.hover_height,
             CtxAction::HoverHeight,
+        );
+        ui.item(
+            crate::ui::charsheet::ICON,
+            aurora_i18n::tr!("charsheet-menu-context"),
+            CtxAction::CharacterSheet(f.me),
         );
         ui.separator();
         reset_skeleton_items(ui, f.me);
@@ -1464,6 +1475,8 @@ mod tests {
             expected.extend(tr(&[
                 "ui-context-display-options>",
                 "ui-context-information-options>",
+                // this build's own, above the resets as in the fork
+                "charsheet-menu-context",
                 "ui-context-reset-options>",
                 "ui-context-disturbance>",
             ]));

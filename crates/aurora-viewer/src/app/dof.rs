@@ -85,7 +85,14 @@ impl App {
         } else {
             (self.settings.dof.clone(), None)
         };
-        if !s.enabled || (self.build.open && !s.in_edit) || (self.ik_editor.posing() && !self.ik_editor.poser_dof()) || !self.in_world() {
+        // (the character sheet's images are sharp throughout, as the fork's
+        // RenderDepthOfField override)
+        if !s.enabled
+            || (self.build.open && !s.in_edit)
+            || (self.ik_editor.posing() && !self.ik_editor.poser_dof())
+            || !self.in_world()
+            || self.charsheet_owns_camera()
+        {
             return None;
         }
         // the viewfinder's AF-S: the lens where its hunt has it (the image

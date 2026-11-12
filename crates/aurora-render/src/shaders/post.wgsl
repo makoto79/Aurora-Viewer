@@ -34,6 +34,9 @@ struct PostParams {
     // (left, top, width, height; 0, 0, 1, 1 outside a tiled photo): the
     // glow's 512 x 512 texels are the whole photo's, as in one pass
     photo_part: vec4<f32>,
+    // the live view of a cut-out photo over this colour (linear rgb, w 1)
+    // instead of the checkerboard (FrameParams::cutout_backdrop)
+    backdrop: vec4<f32>,
 };
 @group(0) @binding(2) var<uniform> post: PostParams;
 // Blurred glow (512x512, display space), see glow.wgsl.
@@ -340,8 +343,11 @@ fn fs_post(in: Out) -> @location(0) vec4<f32> {
         // the live view: what the photo leaves empty shows as a checkerboard
         let cell = vec2<u32>(in.clip.xy / 12.0);
         let light = ((cell.x + cell.y) & 1u) == 0u;
-        let checker = select(vec3<f32>(0.16), vec3<f32>(0.32), light);
-        m = mix(checker, m, cutout_cover(in.uv));
+        var behind = select(vec3<f32>(0.16), vec3<f32>(0.32), light);
+        if (post.backdrop.w > 0.5) {
+            behind = post.backdrop.rgb;
+        }
+        m = mix(behind, m, cutout_cover(in.uv));
     } else if (post.cutout > 0.5) {
         alpha = cutout_cover(in.uv);
     }

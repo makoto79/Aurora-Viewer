@@ -1423,6 +1423,10 @@ pub struct FrameParams {
     /// what is drawn keeps its coverage, in the snapshot's alpha or over a
     /// checkerboard on the live view.
     pub cutout: bool,
+    /// The live view of a cut-out photo over this colour (linear rgb)
+    /// instead of the checkerboard: the viewer's character sheet capture
+    /// shows its backdrop. Snapshots keep their alpha either way.
+    pub cutout_backdrop: Option<[f32; 3]>,
     /// The photo's look (looks.rs), over the image once tone mapped; None:
     /// none, at no cost.
     pub look: Option<crate::looks::PhotoLook>,

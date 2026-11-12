@@ -199,6 +199,9 @@ struct PostU {
     _pad: f32,
     /// The part of the photo the frame draws ([`photo_part`]).
     photo_part: [f32; 4],
+    /// The live view's colour behind a cut-out photo (linear rgb, w 1), or
+    /// zero for the checkerboard (`FrameParams::cutout_backdrop`).
+    backdrop: [f32; 4],
 }
 
 /// Where `PostU::auto_exposure` sits in the post uniforms.
@@ -7064,6 +7067,7 @@ impl Backend {
             },
             _pad: 0.0,
             photo_part: photo_part(f.photo_tile),
+            backdrop: f.cutout_backdrop.map_or([0.0; 4], |c| [c[0], c[1], c[2], 1.0]),
         };
         self.queue.write_buffer(&self.post_buffer, 0, bytemuck::bytes_of(&post));
         if let (true, Some(t)) = (self.contact_now, &self.targets.contact) {
