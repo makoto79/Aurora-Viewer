@@ -33,6 +33,9 @@ pub struct PhotoChoice {
     pub time: Option<u8>,
     /// The sun's rotation, over whatever sky is shown.
     pub sun: Option<Quat>,
+    /// No clouds over whatever sky is shown: none drawn and no cloud shadow
+    /// dimming the sun (the character sheet capture's neutral light).
+    pub no_clouds: bool,
     /// The sky, water and time a day replaced: restoring the day gives
     /// them back, so that its restore button undoes the day alone.
     pub replaced: Replaced,
@@ -50,7 +53,7 @@ impl PhotoChoice {
     /// Nothing over the environment shown (what a day replaced shows
     /// nothing).
     pub fn is_empty(&self) -> bool {
-        self.day.is_none() && self.sky.is_none() && self.water.is_none() && self.time.is_none() && self.sun.is_none()
+        self.day.is_none() && self.sky.is_none() && self.water.is_none() && self.time.is_none() && self.sun.is_none() && !self.no_clouds
     }
 
     /// An item from one of the lists (None: the user's own again). A day
