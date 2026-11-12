@@ -1261,6 +1261,13 @@ impl EnvSelector {
         {
             sky.sun_rotation = q;
         }
+        // and its clear sky: the clouds' coverage dims the sun and lifts the
+        // ambient (cloud_shadow, atmos_eval), the cloud layer goes with a
+        // zero scale (sky_clouds)
+        if source != Source::Edit && self.photo.choice.no_clouds {
+            sky.cloud_shadow = 0.0;
+            sky.cloud_scale = 0.0;
+        }
         // (an open editor hides the photo's light: nothing to fade from)
         let closing = std::mem::take(&mut self.photo_closing) && source != Source::Edit;
         if let Some(prev) = self.shown
@@ -2093,6 +2100,31 @@ mod tests {
         assert!((sky.gamma - 0.7).abs() < 1e-6);
         assert!((water.fog_density - 9.0).abs() < 1e-6);
         assert!(!sel.take_local_dirty());
+    }
+
+    #[test]
+    fn the_photos_clear_sky_takes_the_clouds_off_the_light_only_while_set() {
+        let mut sel = region_selector();
+        let own = sel.frame(&input(1.0)).0;
+        assert!(own.cloud_shadow > 0.0 && own.cloud_scale > 0.0, "a region sky with clouds");
+        sel.set_photo(PhotoChoice {
+            no_clouds: true,
+            ..PhotoChoice::default()
+        });
+        assert!(!sel.photo_choice().is_empty(), "a choice of its own");
+        let (sky, _) = sel.frame(&input(2.0));
+        assert_eq!(sky.cloud_shadow, 0.0, "no cloud shadow on the sun");
+        assert_eq!(sky.cloud_scale, 0.0, "no cloud layer drawn");
+        assert!((sky.gamma - own.gamma).abs() < 1e-6, "the rest of the sky as it was");
+        // an open editor shows its own sky, clouds included
+        sel.set_edit_sky(own);
+        assert!((sel.frame(&input(3.0)).0.cloud_shadow - own.cloud_shadow).abs() < 1e-6);
+        sel.clear_edit();
+        // the window closes: the clouds fade back in with the user's light
+        sel.close_photo();
+        sel.set_photo(PhotoChoice::default());
+        let end = sel.frame(&input(4.0 + f64::from(TRANSITION_DEFAULT) + 0.1)).0;
+        assert!((end.cloud_shadow - own.cloud_shadow).abs() < 1e-6);
     }
 
     #[test]

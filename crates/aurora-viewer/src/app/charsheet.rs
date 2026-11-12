@@ -235,6 +235,9 @@ impl App {
         Some(PhotoChoice {
             time: Some(NOON),
             sun: Some(sun),
+            // the region's clouds would dim and flatten the light of one
+            // sim against another
+            no_clouds: true,
             ..Default::default()
         })
     }
