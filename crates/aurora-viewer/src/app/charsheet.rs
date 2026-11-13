@@ -190,7 +190,7 @@ impl App {
     pub(super) fn charsheet_camera(&mut self) {
         // the avatar does not walk out of its frame: from the preview, or
         // the run's start (its plan is measured before the countdown), on
-        if self.charsheet.preview.is_some() || self.charsheet.run.as_ref().is_some_and(|r| r.run.running()) {
+        if self.charsheet_active() {
             self.input = Default::default();
         }
         let shot = if let Some(p) = &self.charsheet.preview {
@@ -217,6 +217,27 @@ impl App {
                 self.camera.flycam = Some(flycam);
             }
         }
+    }
+
+    /// The preview or a run holds the camera (and the scene).
+    pub(super) fn charsheet_active(&self) -> bool {
+        self.charsheet.preview.is_some() || self.charsheet.run.as_ref().is_some_and(|r| r.run.running())
+    }
+
+    /// The scene of the preview and the run, after the frame's parameters,
+    /// as the avatar studio's stage strips its own (`studio_render`): the
+    /// weather is the user's view, never part of a character sheet. No
+    /// drops or flakes, no lightning, no aurora glow in the sky, no haze,
+    /// no mirror; the snow on the avatars is kept but not drawn
+    /// (`scene.avatar_snow_hidden`). The weather's settings and memories
+    /// are left as they are: everything is back with the next frame after.
+    /// Not in the fork, which had no weather (Aurora addition).
+    pub(super) fn charsheet_scene(&self, fp: &mut aurora_render::FrameParams) {
+        fp.rain = 0.0;
+        fp.rain_look.lightning = [0.0; 4];
+        fp.rain_look.aurora = [0.0; 4];
+        fp.fog_density = 0.0;
+        fp.mirror = None;
     }
 
     /// The neutral light while the preview or a run holds it (None: the

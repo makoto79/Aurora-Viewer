@@ -839,6 +839,8 @@ pub struct Scene {
     pub snow_detail: snow_detail::SnowDetail,
     /// Aurora Weather: the snow gathered on the avatars near the camera.
     pub avatar_snow: avatar_snow::AvatarSnow,
+    /// The snow is kept but not drawn (the character sheet capture).
+    pub avatar_snow_hidden: bool,
     /// Aurora Weather: the feet watched for footprints in the snow.
     pub snow_trails: snow_trail::SnowTrails,
     auto_hover: auto_hover::AutoHover,
@@ -1581,6 +1583,7 @@ impl Scene {
         Scene {
             snow_detail: Default::default(),
             avatar_snow: Default::default(),
+            avatar_snow_hidden: false,
             snow_trails: Default::default(),
             jobs,
             job_rx,
@@ -5953,7 +5956,12 @@ impl Scene {
         // the snow on each avatar, after its pose (which fills its entries)
         for (id, slot) in &self.palette_slots {
             if let Some(m) = self.palettes.get_mut(*slot as usize * anim::PALETTE_JOINTS + anim::AVATAR_SNOW) {
-                *m = [[self.avatar_snow.amount(id), 0.0, 0.0, 0.0], [0.0; 4], [0.0; 4], [0.0; 4]];
+                let snow = if self.avatar_snow_hidden {
+                    0.0
+                } else {
+                    self.avatar_snow.amount(id)
+                };
+                *m = [[snow, 0.0, 0.0, 0.0], [0.0; 4], [0.0; 4], [0.0; 4]];
             }
         }
         self.posed_slots.clear();
