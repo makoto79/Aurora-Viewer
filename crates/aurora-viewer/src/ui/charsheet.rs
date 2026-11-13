@@ -143,6 +143,19 @@ impl CharsheetUi {
             changed |= widgets::switch_labeled(ui, p, &mut s.neutral_light, aurora_i18n::tr!("charsheet-neutral-light"))
                 .on_hover_text(aurora_i18n::tr!("charsheet-neutral-light-tip"))
                 .changed();
+            // which neutral light: the noon sun or the studio's lights
+            ui.add_enabled_ui(s.neutral_light, |ui| {
+                ui.horizontal(|ui| {
+                    ui.add_space(24.0);
+                    changed |= widgets::radio_value(ui, p, &mut s.studio_light, false, aurora_i18n::tr!("charsheet-light-daylight"))
+                        .on_hover_text(aurora_i18n::tr!("charsheet-light-daylight-tip"))
+                        .changed();
+                    ui.add_space(12.0);
+                    changed |= widgets::radio_value(ui, p, &mut s.studio_light, true, aurora_i18n::tr!("charsheet-light-studio"))
+                        .on_hover_text(aurora_i18n::tr!("charsheet-light-studio-tip"))
+                        .changed();
+                });
+            });
             ui.horizontal(|ui| {
                 ui.label(aurora_i18n::tr!("charsheet-background"));
                 // the user's own backdrop colour, sRGB 0..1 in the settings

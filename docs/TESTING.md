@@ -473,7 +473,7 @@ the background still applies outside screenshots.
 | `AURORA_DEMO_PHOTO_LOOK=<look>[+<look>…][:<percent>][:compare][:panel][:tab=…][:search=…][:set=…]` | The photo's looks stacked (Legacy, Aurora, a LUT or a creator's LUT), the chosen one's strength and settings, the before / after line, the filter panel |
 | `AURORA_DEMO_CONTROLS=camera\|roll\|movement\|compact\|compact-move\|classic\|views\|classic-views\|free\|free-compact` | The Controls window open on a tab, the Legacy Viewer's two windows, a view saved and given back, or driving the photo window's free camera |
 | `AURORA_DEMO_CAMERA_PRESETS=save\|apply\|object\|pick[-…]` | The viewfinder's camera presets: saved on the avatar, a place and an object, applied, or the object chosen in the scene |
-| `AURORA_DEMO_CHARSHEET=window\|preview\|run\|run-transparent\|run-portrait\|other\|other-local\|stop\|lost` | The character sheet capture: its window, the preview's shots, a full series written, someone else's avatar, a run ended early |
+| `AURORA_DEMO_CHARSHEET=window\|preview\|run\|run-transparent\|run-portrait\|run-studio\|other\|other-local\|stop\|lost` | The character sheet capture: its window, the preview's shots, a full series written, someone else's avatar, a run ended early |
 | `AURORA_DEMO_CHARSHEET_DIR=<folder>` | With `AURORA_DEMO_CHARSHEET`: where its series are written (the temporary folder by default) |
 
 `AURORA_DEMO_RENDER_TEXTURE`: with demo mode and `AURORA_CAPTURE`, the capture
@@ -932,7 +932,9 @@ on `other`'s (no consent: its own pose, the status line says why). The log
 gives `demo charsheet: preview shot <n> (<label>) at frame <f>`: capture
 those frames with `AURORA_CAPTURE_FRAMES`. `run` starts a series at frame
 330 (`run-transparent`: PNGs with alpha; `run-portrait`: body shots 1152 x
-2016 at 1536): neutral light, world frozen, one `charsheet: shot <i>/20
+2016 at 1536; `run-studio`: the studio light, three white lights around the
+avatar and a grey ambient, no sun, `"studio_light": true` in the
+manifest): neutral light, world frozen, one `charsheet: shot <i>/20
 drawn` line per shot, then `demo charsheet: series done (Some(Completed)):
 20 image(s)`, a folder `avatar_<date>_<time>` (the demo has no account
 name) with the 20 PNGs, `avatar_sheet.png` (one row per group) and

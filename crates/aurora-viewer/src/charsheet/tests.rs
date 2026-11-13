@@ -3,6 +3,7 @@ use super::naming;
 use super::output;
 use super::plan::{self, Group, Side, View};
 use super::run::{self, Command, Input, Phase, Run, Stop};
+use super::studio;
 use super::*;
 use glam::Vec3;
 use std::collections::HashMap;
@@ -347,6 +348,7 @@ fn charsheet_output_writes_a_series() {
         height_m: 1.8,
         a_pose: true,
         neutral_light: true,
+        studio_light: true,
         transparent: false,
         background: [0.5, 0.5, 0.5],
         zoom_percent: 100.0,
@@ -392,6 +394,7 @@ fn charsheet_output_writes_a_series() {
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(folder.join(naming::MANIFEST_NAME)).expect("manifest")).expect("json");
     assert_eq!(manifest["image_count"], 2);
+    assert_eq!(manifest["setup"]["studio_light"], true);
     assert_eq!(manifest["shots"][1]["view"], "front-left");
     assert_eq!(manifest["contact_sheet"], "jane.doe_sheet.png");
     assert!(!manifest.to_string().contains("asset"));
@@ -419,6 +422,7 @@ fn charsheet_writer_without_images_makes_no_folder() {
             height_m: 0.0,
             a_pose: false,
             neutral_light: false,
+            studio_light: false,
             transparent: true,
             background: [0.0; 3],
             zoom_percent: 100.0,
@@ -629,4 +633,56 @@ mod rig {
         assert!((1.4..2.3).contains(&m.height), "{}", m.height);
         assert_eq!(plan::build(&m, &Settings::default()).len(), plan::IMAGE_COUNT);
     }
+}
+
+#[test]
+fn charsheet_studio_rig() {
+    // a standing avatar facing +Y: key on its front right, fill on its
+    // front left, rim behind, all above the head
+    let joints = rest_joints();
+    let up = plan::Upright::new(joints["mPelvis"], Vec3::Z);
+    let m = metrics_of(&joints, 1.8, Vec3::Y).expect("measured");
+    let rig = studio::Rig::new(&m, &up);
+    assert!(rig.floor.distance(Vec3::new(0.0, 0.0, m.sole_z)) < 1e-5);
+    let [key, fill, rim] = rig.lights();
+    let (front, left) = (Vec3::Y, Vec3::NEG_X);
+    assert!(key.0.dot(front) > 0.0 && key.0.dot(left) < 0.0, "{key:?}");
+    assert!(fill.0.dot(front) > 0.0 && fill.0.dot(left) > 0.0, "{fill:?}");
+    assert!(rim.0.dot(front) < 0.0, "{rim:?}");
+    for (at, color, radius) in rig.lights() {
+        assert!(at.z > m.head_top_z);
+        // white: no tint
+        assert!((color.x - color.y).abs() < 1e-6 && (color.y - color.z).abs() < 1e-6);
+        assert!((radius - studio::RADIUS * m.height / studio::REFERENCE_HEIGHT).abs() < 1e-4);
+    }
+    // a taller avatar: the lights stand farther out, reaching as far
+    let tall = studio::Rig { height: 3.6, ..rig };
+    let ratio = (tall.lights()[0].0 - tall.floor).length() / (key.0 - rig.floor).length();
+    let expected = 3.6 / rig.height;
+    assert!((ratio - expected).abs() < 1e-4, "{ratio} vs {expected}");
+    assert!((tall.lights()[0].2 / key.2 - expected).abs() < 1e-4);
+    // a broken height keeps the reference layout
+    assert_eq!(studio::Rig { height: f32::NAN, ..rig }.lights()[0].2, studio::RADIUS);
+}
+
+#[test]
+fn charsheet_studio_rig_follows_a_tilted_seat() {
+    let pelvis = Vec3::new(5.0, 3.0, 21.0);
+    let model = glam::Quat::from_rotation_y(30f32.to_radians()) * glam::Quat::from_rotation_z(0.4);
+    let up = plan::Upright::new(pelvis, model * Vec3::Z);
+    let rest_pelvis = rest_joints()["mPelvis"];
+    let joints: HashMap<_, _> = rest_joints()
+        .into_iter()
+        .map(|(n, p)| (n, pelvis + model * (p - rest_pelvis)))
+        .collect();
+    let m = measure::measure(|n| joints.get(n).map(|p| up.point(*p)), 1.8, up.direction(model * Vec3::X)).expect("measured");
+    let rig = studio::Rig::new(&m, &up);
+    // the rig turns and tilts with the avatar: its up is the avatar's up,
+    // its forward the avatar's forward
+    assert!((rig.rotation * Vec3::Z).distance(model * Vec3::Z) < 1e-4);
+    assert!((rig.rotation * Vec3::X).distance(model * Vec3::X) < 1e-4);
+    // the floor under the feet, along the avatar's own up
+    // (in the avatar's own frame: right under its pelvis, at its soles)
+    let local = model.inverse() * (rig.floor - pelvis) + rest_pelvis;
+    assert!(local.distance(Vec3::new(0.0, 0.0, rest_metrics().sole_z)) < 1e-3, "{local:?}");
 }
