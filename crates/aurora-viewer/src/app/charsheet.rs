@@ -30,6 +30,9 @@ use uuid::Uuid;
 const NEUTRAL_SUN_ELEVATION_DEG: f32 = 60.0;
 /// The photo window's "noon" time of day (`snapshot::light::PhotoLight`).
 const NOON: u8 = 2;
+/// The capture's water level under its camera (`charsheet_scene`): well
+/// past anything a shot frames.
+const CAPTURE_WATER_BELOW_M: f32 = 100.0;
 
 #[derive(Default)]
 pub(super) struct Charsheet {
@@ -232,12 +235,24 @@ impl App {
     /// (`scene.avatar_snow_hidden`). The weather's settings and memories
     /// are left as they are: everything is back with the next frame after.
     /// Not in the fork, which had no weather (Aurora addition).
-    pub(super) fn charsheet_scene(&self, fp: &mut aurora_render::FrameParams) {
+    ///
+    /// No water either: a camera below the region's water (a steep seat
+    /// puts the camera behind the avatar deep into the ground) drew the
+    /// whole image through the underwater fog, though no water is drawn.
+    /// The water level goes far below the camera and the water's lists are
+    /// emptied, as the avatar studio's stage does.
+    pub(super) fn charsheet_scene(&mut self, fp: &mut aurora_render::FrameParams) {
         fp.rain = 0.0;
         fp.rain_look.lightning = [0.0; 4];
         fp.rain_look.aurora = [0.0; 4];
         fp.fog_density = 0.0;
         fp.mirror = None;
+        fp.water_height = fp.camera_pos.z - CAPTURE_WATER_BELOW_M;
+        let lists = &mut self.scene.lists;
+        lists.water.clear();
+        lists.water_events.clear();
+        lists.water_contacts.clear();
+        lists.water_ground = Default::default();
     }
 
     /// The neutral light while the preview or a run holds it (None: the
