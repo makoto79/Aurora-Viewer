@@ -101,6 +101,56 @@ pub fn orbit_eye(target: Vec3, forward: Vec3, azimuth_deg: f32, elevation_deg: f
     target + direction * (distance * el.cos()) + Vec3::Z * (distance * el.sin())
 }
 
+/// A seated avatar carries the seat's tilt in its model rotation, and the
+/// A-pose keeps the root as it is: framed with the world's up, the avatar
+/// came out tilted in every image. The capture works in the avatar's
+/// upright frame instead: the joints are measured with the tilt (the swing
+/// from the world's up to the model's up, no yaw) taken off about `pivot`,
+/// and the plan's cameras get it back, so the avatar stands straight in the
+/// images. A standing avatar has no tilt: identity. The fork frames with
+/// the world's up and shows the bug (Aurora fix, custom feature).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Upright {
+    pub pivot: Vec3,
+    pub tilt: Quat,
+}
+
+impl Upright {
+    /// `model_up` is the avatar's rotated +Z.
+    pub fn new(pivot: Vec3, model_up: Vec3) -> Self {
+        let tilt = model_up
+            .try_normalize()
+            .map_or(Quat::IDENTITY, |up| Quat::from_rotation_arc(Vec3::Z, up));
+        Self { pivot, tilt }
+    }
+
+    /// A world position in the upright frame.
+    pub fn point(&self, p: Vec3) -> Vec3 {
+        self.pivot + self.tilt.inverse() * (p - self.pivot)
+    }
+
+    /// A world direction in the upright frame.
+    pub fn direction(&self, d: Vec3) -> Vec3 {
+        self.tilt.inverse() * d
+    }
+
+    /// A shot planned in the upright frame, back in the world.
+    pub fn shot(&self, mut shot: Shot) -> Shot {
+        let back = |p: Vec3| self.pivot + self.tilt * (p - self.pivot);
+        shot.target = back(shot.target);
+        shot.eye = back(shot.eye);
+        shot.up = (self.tilt * shot.up).normalize();
+        shot
+    }
+
+    /// The upright frame's flat facing in the world, flat again: the
+    /// neutral sun's direction.
+    pub fn world_forward(&self, forward: Vec3) -> Vec3 {
+        let f = self.tilt * forward;
+        Vec3::new(f.x, f.y, 0.0).try_normalize().unwrap_or(forward)
+    }
+}
+
 /// The plan for these metrics and settings, in the fork's order.
 pub fn build(m: &Metrics, s: &Settings) -> Vec<Shot> {
     let zoom = (s.zoom_percent.clamp(10.0, 1000.0)) * 0.01;

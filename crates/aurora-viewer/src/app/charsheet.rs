@@ -799,12 +799,29 @@ impl App {
     fn charsheet_measure(&self, subject: Uuid) -> Option<(Metrics, Vec<Shot>)> {
         let frame = crate::ik_edit::Frame::subject(&self.world, subject)?;
         let rig = &self.world.avatar_lib.rig;
-        let m = measure::measure(
-            |n| rig.names.get(n).and_then(|&i| frame.joints.get(i)).map(|j| j.w_axis.truncate()),
+        // measured and planned straight up, the seat's tilt given back to
+        // the cameras (plan::Upright)
+        let pivot = frame
+            .joints
+            .get(rig.pelvis)
+            .map_or(frame.model.w_axis.truncate(), |j| j.w_axis.truncate());
+        let upright = plan::Upright::new(pivot, frame.model.z_axis.truncate());
+        let mut m = measure::measure(
+            |n| {
+                rig.names
+                    .get(n)
+                    .and_then(|&i| frame.joints.get(i))
+                    .map(|j| upright.point(j.w_axis.truncate()))
+            },
             self.charsheet_height(subject),
-            frame.model.x_axis.truncate(),
+            upright.direction(frame.model.x_axis.truncate()),
         )?;
-        let plan = plan::build(&m, &self.settings.charsheet);
+        let plan = plan::build(&m, &self.settings.charsheet)
+            .into_iter()
+            .map(|s| upright.shot(s))
+            .collect();
+        // the plan is in the world now: so is the facing, for the sun
+        m.forward = upright.world_forward(m.forward);
         Some((m, plan))
     }
 
