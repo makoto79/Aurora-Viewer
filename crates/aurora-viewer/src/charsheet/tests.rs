@@ -156,6 +156,68 @@ fn charsheet_plan_cameras() {
     assert!(shots[17].eye.y > shots[17].target.y && shots[18].eye.y < shots[18].target.y);
 }
 
+/// The app's path: joints taken into the upright frame, measured, planned,
+/// the shots given back to the world.
+fn upright_plan(joints: &HashMap<&'static str, Vec3>, upright: &plan::Upright, facing: Vec3) -> (Metrics, Vec<plan::Shot>) {
+    let j = |n: &str| joints.get(n).map(|p| upright.point(*p));
+    let m = measure::measure(j, 1.8, upright.direction(facing)).expect("measured");
+    let shots = plan::build(&m, &Settings::default()).into_iter().map(|s| upright.shot(s)).collect();
+    (m, shots)
+}
+
+#[test]
+fn charsheet_upright_standing_is_unchanged() {
+    let up = plan::Upright::new(Vec3::new(0.0, 0.0, 1.0), Vec3::Z * 2.0);
+    assert!(up.tilt.angle_between(glam::Quat::IDENTITY) < 1e-6);
+    let (m, shots) = upright_plan(&rest_joints(), &up, Vec3::X);
+    let plain = plan::build(&rest_metrics(), &Settings::default());
+    let rest = rest_metrics();
+    assert!((m.height - rest.height).abs() < 1e-5 && m.pelvis.distance(rest.pelvis) < 1e-5 && m.forward.distance(rest.forward) < 1e-6);
+    for (a, b) in shots.iter().zip(&plain) {
+        assert!(a.eye.distance(b.eye) < 1e-5 && a.target.distance(b.target) < 1e-5 && a.up.distance(b.up) < 1e-5);
+    }
+    // a degenerate up keeps the world's
+    assert_eq!(plan::Upright::new(Vec3::ZERO, Vec3::ZERO).tilt, glam::Quat::IDENTITY);
+}
+
+#[test]
+fn charsheet_upright_tilted_seat() {
+    // the avatar on a seat pitched forward 25° and rolled 10°, turned 30°:
+    // the whole body tilted rigidly about its pelvis
+    let pelvis = Vec3::new(5.0, 3.0, 21.0);
+    let yaw = glam::Quat::from_rotation_z(30f32.to_radians());
+    let seat = glam::Quat::from_rotation_y(25f32.to_radians()) * glam::Quat::from_rotation_x(10f32.to_radians());
+    let model = seat * yaw;
+    let rest_pelvis = rest_joints()["mPelvis"];
+    let joints: HashMap<_, _> = rest_joints()
+        .into_iter()
+        .map(|(n, p)| (n, pelvis + model * (p - rest_pelvis)))
+        .collect();
+    let up = plan::Upright::new(pelvis, model * Vec3::Z);
+    let (m, shots) = upright_plan(&joints, &up, model * Vec3::X);
+    // measured as if it stood straight: the rest avatar, only turned
+    let rest = rest_metrics();
+    assert!((m.height - rest.height).abs() < 1e-4, "{} vs {}", m.height, rest.height);
+    let turn = up.tilt.inverse() * model;
+    assert!((turn * Vec3::Z).distance(Vec3::Z) < 1e-5, "the upright frame keeps only a turn");
+    assert!(m.forward.distance(turn * Vec3::X) < 1e-4, "{:?}", m.forward);
+    // each camera sees the avatar exactly as the rest avatar's camera sees
+    // it: the same eye, target and up in the avatar's own frame
+    let plain = plan::build(&rest, &Settings::default());
+    let local = |p: Vec3| model.inverse() * (p - pelvis) + rest_pelvis;
+    for (s, r) in shots.iter().zip(&plain) {
+        assert!(local(s.eye).distance(r.eye) < 1e-3, "{s:?}");
+        assert!(local(s.target).distance(r.target) < 1e-3, "{s:?}");
+        assert!((model.inverse() * s.up).distance(r.up) < 1e-3, "{s:?}");
+    }
+    // the body shots' up is the avatar's up, not the world's
+    assert!(shots[0].up.dot(model * Vec3::Z) > 0.999);
+    assert!(shots[0].up.dot(Vec3::Z) < 0.95);
+    // the sun's facing is flat in the world
+    let sun = up.world_forward(m.forward);
+    assert!(sun.z.abs() < 1e-6 && sun.is_normalized());
+}
+
 #[test]
 fn charsheet_plan_framing_settings() {
     let m = rest_metrics();

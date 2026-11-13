@@ -11869,8 +11869,12 @@ impl App {
             hide_sky: self.settings.debug.hidden_types.sky,
             look: None,
         };
+        self.scene.avatar_snow_hidden = self.charsheet_active();
         if let Some(view) = studio_view {
             self.studio_render(&mut gfx.renderer, &mut fp, view);
+        } else if self.charsheet_active() {
+            // the character sheet capture: no weather, no lightning
+            self.charsheet_scene(&mut fp);
         } else {
             // the lightning, lighting the world (not the avatar studio's
             // stage, which has its own lighting)

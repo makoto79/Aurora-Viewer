@@ -30,6 +30,9 @@ use uuid::Uuid;
 const NEUTRAL_SUN_ELEVATION_DEG: f32 = 60.0;
 /// The photo window's "noon" time of day (`snapshot::light::PhotoLight`).
 const NOON: u8 = 2;
+/// The capture's water level under its camera (`charsheet_scene`): well
+/// past anything a shot frames.
+const CAPTURE_WATER_BELOW_M: f32 = 100.0;
 
 #[derive(Default)]
 pub(super) struct Charsheet {
@@ -190,7 +193,7 @@ impl App {
     pub(super) fn charsheet_camera(&mut self) {
         // the avatar does not walk out of its frame: from the preview, or
         // the run's start (its plan is measured before the countdown), on
-        if self.charsheet.preview.is_some() || self.charsheet.run.as_ref().is_some_and(|r| r.run.running()) {
+        if self.charsheet_active() {
             self.input = Default::default();
         }
         let shot = if let Some(p) = &self.charsheet.preview {
@@ -217,6 +220,39 @@ impl App {
                 self.camera.flycam = Some(flycam);
             }
         }
+    }
+
+    /// The preview or a run holds the camera (and the scene).
+    pub(super) fn charsheet_active(&self) -> bool {
+        self.charsheet.preview.is_some() || self.charsheet.run.as_ref().is_some_and(|r| r.run.running())
+    }
+
+    /// The scene of the preview and the run, after the frame's parameters,
+    /// as the avatar studio's stage strips its own (`studio_render`): the
+    /// weather is the user's view, never part of a character sheet. No
+    /// drops or flakes, no lightning, no aurora glow in the sky, no haze,
+    /// no mirror; the snow on the avatars is kept but not drawn
+    /// (`scene.avatar_snow_hidden`). The weather's settings and memories
+    /// are left as they are: everything is back with the next frame after.
+    /// Not in the fork, which had no weather (Aurora addition).
+    ///
+    /// No water either: a camera below the region's water (a steep seat
+    /// puts the camera behind the avatar deep into the ground) drew the
+    /// whole image through the underwater fog, though no water is drawn.
+    /// The water level goes far below the camera and the water's lists are
+    /// emptied, as the avatar studio's stage does.
+    pub(super) fn charsheet_scene(&mut self, fp: &mut aurora_render::FrameParams) {
+        fp.rain = 0.0;
+        fp.rain_look.lightning = [0.0; 4];
+        fp.rain_look.aurora = [0.0; 4];
+        fp.fog_density = 0.0;
+        fp.mirror = None;
+        fp.water_height = fp.camera_pos.z - CAPTURE_WATER_BELOW_M;
+        let lists = &mut self.scene.lists;
+        lists.water.clear();
+        lists.water_events.clear();
+        lists.water_contacts.clear();
+        lists.water_ground = Default::default();
     }
 
     /// The neutral light while the preview or a run holds it (None: the
@@ -799,12 +835,29 @@ impl App {
     fn charsheet_measure(&self, subject: Uuid) -> Option<(Metrics, Vec<Shot>)> {
         let frame = crate::ik_edit::Frame::subject(&self.world, subject)?;
         let rig = &self.world.avatar_lib.rig;
-        let m = measure::measure(
-            |n| rig.names.get(n).and_then(|&i| frame.joints.get(i)).map(|j| j.w_axis.truncate()),
+        // measured and planned straight up, the seat's tilt given back to
+        // the cameras (plan::Upright)
+        let pivot = frame
+            .joints
+            .get(rig.pelvis)
+            .map_or(frame.model.w_axis.truncate(), |j| j.w_axis.truncate());
+        let upright = plan::Upright::new(pivot, frame.model.z_axis.truncate());
+        let mut m = measure::measure(
+            |n| {
+                rig.names
+                    .get(n)
+                    .and_then(|&i| frame.joints.get(i))
+                    .map(|j| upright.point(j.w_axis.truncate()))
+            },
             self.charsheet_height(subject),
-            frame.model.x_axis.truncate(),
+            upright.direction(frame.model.x_axis.truncate()),
         )?;
-        let plan = plan::build(&m, &self.settings.charsheet);
+        let plan = plan::build(&m, &self.settings.charsheet)
+            .into_iter()
+            .map(|s| upright.shot(s))
+            .collect();
+        // the plan is in the world now: so is the facing, for the sun
+        m.forward = upright.world_forward(m.forward);
         Some((m, plan))
     }
 
