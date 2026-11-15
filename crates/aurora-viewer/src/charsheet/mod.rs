@@ -14,6 +14,7 @@ pub mod output;
 pub mod plan;
 pub mod pose;
 pub mod run;
+pub mod studio;
 
 #[cfg(test)]
 mod tests;
@@ -52,6 +53,10 @@ pub struct Settings {
     pub a_pose: bool,
     /// Even daylight instead of the sky (FSAvatarSheetNeutralLight).
     pub neutral_light: bool,
+    /// With the neutral light: the studio's three lights and a grey
+    /// ambient instead of the noon sun (`studio`). Not in the fork
+    /// (Aurora addition, off by default).
+    pub studio_light: bool,
     /// Backdrop colour, sRGB 0..1 (FSAvatarSheetBackground).
     pub background: [f32; 3],
     /// PNGs with alpha instead of the backdrop (FSAvatarSheetTransparent).
@@ -79,6 +84,7 @@ impl Default for Settings {
         Self {
             a_pose: true,
             neutral_light: true,
+            studio_light: false,
             background: [0.5, 0.5, 0.5],
             transparent: false,
             zoom_percent: 100.0,

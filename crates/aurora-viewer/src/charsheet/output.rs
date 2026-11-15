@@ -30,6 +30,8 @@ pub struct Header {
     pub height_m: f32,
     pub a_pose: bool,
     pub neutral_light: bool,
+    /// The neutral light was the studio's (`studio`).
+    pub studio_light: bool,
     pub transparent: bool,
     /// sRGB 0..1.
     pub background: [f32; 3],
@@ -342,6 +344,7 @@ pub fn manifest(h: &Header, shots: &[serde_json::Value], contact: Option<&str>) 
         "setup": {
             "a_pose": h.a_pose,
             "neutral_light": h.neutral_light,
+            "studio_light": h.studio_light,
             "transparent": h.transparent,
             "isolated": true,
             "background_srgb": h.background,

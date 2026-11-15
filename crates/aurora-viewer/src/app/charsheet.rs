@@ -17,7 +17,7 @@ use crate::charsheet::measure::{self, Metrics};
 use crate::charsheet::output::{self, Event, Writer};
 use crate::charsheet::plan::{self, Group, Shot, Side, View as ShotView};
 use crate::charsheet::run::{Command, Input, Run, Stop};
-use crate::charsheet::{naming, pose};
+use crate::charsheet::{naming, pose, studio};
 use crate::ik_edit::poser::SubjectPose;
 use crate::ui::charsheet::{Action, Candidate, View};
 use crate::world::eep_photo::PhotoChoice;
@@ -62,6 +62,7 @@ struct Preview {
     index: usize,
     plan: Vec<Shot>,
     forward: glam::Vec3,
+    rig: Option<studio::Rig>,
     since: Instant,
 }
 
@@ -70,6 +71,7 @@ struct Running {
     subject: Uuid,
     plan: Vec<Shot>,
     forward: glam::Vec3,
+    rig: Option<studio::Rig>,
     writer: Option<Writer>,
     /// An image the writer's queue had no room for yet.
     pending: Option<(usize, Shot, u32, u32, Vec<u8>)>,
@@ -253,6 +255,23 @@ impl App {
         lists.water_events.clear();
         lists.water_contacts.clear();
         lists.water_ground = Default::default();
+        if let Some(rig) = self.charsheet_studio_rig() {
+            charsheet_studio_light(fp, &rig);
+        }
+    }
+
+    /// The studio's rig while its light is chosen and the capture holds
+    /// the light (the neutral light's own rules: `charsheet_light`).
+    fn charsheet_studio_rig(&self) -> Option<studio::Rig> {
+        if !self.settings.charsheet.studio_light {
+            return None;
+        }
+        self.charsheet_light()?;
+        if let Some(p) = &self.charsheet.preview {
+            p.rig
+        } else {
+            self.charsheet.run.as_ref().filter(|r| r.lit && r.run.running())?.rig
+        }
     }
 
     /// The neutral light while the preview or a run holds it (None: the
@@ -280,7 +299,7 @@ impl App {
 
     /// AURORA_DEMO_CHARSHEET=<mode> (docs/TESTING.md): the window, the
     /// preview's steps, a full run (`run`, `run-transparent`,
-    /// `run-portrait`), someone else's avatar (`other`, `other-local`) and
+    /// `run-portrait`, `run-studio`), someone else's avatar (`other`, `other-local`) and
     /// a run ended early (`stop`, `lost`). The images go to
     /// AURORA_DEMO_CHARSHEET_DIR, else the temporary folder; the settings are
     /// changed for the session only, never saved.
@@ -306,6 +325,7 @@ impl App {
             s.delay_s = 0;
             s.transparent = mode == "run-transparent";
             s.portrait_body = mode == "run-portrait";
+            s.studio_light = mode == "run-studio";
             if mode == "run-portrait" {
                 s.resolution = crate::charsheet::Resolution::R1536;
             }
@@ -345,7 +365,7 @@ impl App {
                     log::info!("demo charsheet: preview ended at frame {frame}");
                 }
             }
-            "run" | "run-transparent" | "run-portrait" | "stop" | "lost" if frame == 330 => self.charsheet_start(),
+            "run" | "run-transparent" | "run-portrait" | "run-studio" | "stop" | "lost" if frame == 330 => self.charsheet_start(),
             _ => {}
         }
         let shot = self.charsheet.run.as_ref().and_then(|r| r.run.shot());
@@ -497,10 +517,11 @@ impl App {
                     let Some(r) = &self.charsheet.run else { continue };
                     let subject = r.subject;
                     let measured = self.charsheet_measure(subject);
-                    let firsts = measured.as_ref().map(|(_, plan)| firsts(plan));
-                    if let (Some(r), Some((m, plan))) = (&mut self.charsheet.run, measured) {
+                    let firsts = measured.as_ref().map(|(_, plan, _)| firsts(plan));
+                    if let (Some(r), Some((m, plan, rig))) = (&mut self.charsheet.run, measured) {
                         r.plan = plan;
                         r.forward = m.forward;
+                        r.rig = Some(rig);
                     }
                     if firsts.is_none() {
                         self.charsheet.status = Some((aurora_i18n::tr!("charsheet-measure-failed").to_owned(), true));
@@ -560,6 +581,7 @@ impl App {
                 height_m: height,
                 a_pose: posed,
                 neutral_light: self.charsheet_light().is_some(),
+                studio_light: self.charsheet_light().is_some() && s.studio_light,
                 transparent: s.transparent,
                 background: s.background,
                 zoom_percent: s.zoom_percent,
@@ -709,14 +731,15 @@ impl App {
         let started = self.charsheet.preview.is_none();
         self.charsheet_want_pose(subject, now);
         self.world.photo_isolation.set_capture(Some(subject));
-        let (plan, forward) = self
+        let (plan, forward, rig) = self
             .charsheet_measure(subject)
-            .map(|(m, plan)| (plan, m.forward))
-            .unwrap_or_else(|| (Vec::new(), glam::Vec3::X));
+            .map(|(m, plan, rig)| (plan, m.forward, Some(rig)))
+            .unwrap_or_else(|| (Vec::new(), glam::Vec3::X, None));
         self.charsheet.preview = Some(Preview {
             index,
             plan,
             forward,
+            rig,
             since: if started {
                 now
             } else {
@@ -743,11 +766,12 @@ impl App {
         let fresh = now.duration_since(p.since) < Duration::from_millis(800);
         if (fresh || p.plan.is_empty())
             && settled
-            && let Some((m, plan)) = self.charsheet_measure(subject)
+            && let Some((m, plan, rig)) = self.charsheet_measure(subject)
             && let Some(p) = &mut self.charsheet.preview
         {
             p.plan = plan;
             p.forward = m.forward;
+            p.rig = Some(rig);
         }
         let Some(p) = &self.charsheet.preview else { return };
         let label = p.plan.get(p.index).map(shot_label).unwrap_or_default();
@@ -809,6 +833,7 @@ impl App {
             subject,
             plan: Vec::new(),
             forward: glam::Vec3::X,
+            rig: None,
             writer: None,
             pending: None,
             region: self.world.main_region,
@@ -832,7 +857,7 @@ impl App {
         crate::scene::shape::body_size(rig, &shape.local_pos, &shape.scale).1
     }
 
-    fn charsheet_measure(&self, subject: Uuid) -> Option<(Metrics, Vec<Shot>)> {
+    fn charsheet_measure(&self, subject: Uuid) -> Option<(Metrics, Vec<Shot>, studio::Rig)> {
         let frame = crate::ik_edit::Frame::subject(&self.world, subject)?;
         let rig = &self.world.avatar_lib.rig;
         // measured and planned straight up, the seat's tilt given back to
@@ -856,9 +881,11 @@ impl App {
             .into_iter()
             .map(|s| upright.shot(s))
             .collect();
+        // (the studio's lights from the upright facing, before it goes)
+        let rig = studio::Rig::new(&m, &upright);
         // the plan is in the world now: so is the facing, for the sun
         m.forward = upright.world_forward(m.forward);
-        Some((m, plan))
+        Some((m, plan, rig))
     }
 
     fn charsheet_base_folder(&self) -> PathBuf {
@@ -929,7 +956,7 @@ impl App {
             return (Some(line.clone()), *ok);
         }
         let (line, ok) = match self.charsheet_measure(subject) {
-            Some((m, _)) => (aurora_i18n::tr!("charsheet-info", height = format!("{:.2}", m.height)), true),
+            Some((m, _, _)) => (aurora_i18n::tr!("charsheet-info", height = format!("{:.2}", m.height)), true),
             None if self.charsheet_present(subject) => (aurora_i18n::tr!("charsheet-info-incomplete").to_owned(), false),
             None => (aurora_i18n::tr!("charsheet-no-avatar").to_owned(), false),
         };
@@ -1054,4 +1081,34 @@ pub(super) fn shot_label(shot: &Shot) -> String {
         _ => aurora_i18n::text(naming::DIRECTION_KEYS[shot.direction()]).to_owned(),
     };
     format!("{group} · {view}")
+}
+
+/// The studio light on the frame (`charsheet::studio`): its three lights
+/// alone, no sun, a grey ambient instead of the sky's, no reflection probes
+/// (they carry the sky's colours), no sun shadows; the exposure held and no
+/// bloom, as the avatar studio's stage has them, so every image of a series
+/// is exposed alike.
+fn charsheet_studio_light(fp: &mut aurora_render::FrameParams, rig: &studio::Rig) {
+    fp.lights = rig
+        .lights()
+        .into_iter()
+        .map(|(position, color, radius)| aurora_render::PointLight {
+            position,
+            color,
+            radius,
+            falloff: studio::FALLOFF,
+            projector: None,
+        })
+        .collect();
+    fp.spot_shadows.fill(None);
+    fp.sun_color = glam::Vec3::ZERO;
+    fp.sun_visible = 0.0;
+    fp.sky_zenith = studio::AMBIENT_ZENITH;
+    fp.sky_horizon = studio::AMBIENT_HORIZON;
+    fp.ground_color = studio::AMBIENT_GROUND;
+    fp.probes = Default::default();
+    fp.shadows = false;
+    fp.exposure = 1.0;
+    fp.exposure_lock = true;
+    fp.bloom = 0.0;
 }
