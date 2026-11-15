@@ -95,7 +95,8 @@ impl App {
                 .is_some_and(|r| r.run.prepared() || (r.run.running() && c.camera_before.is_some()))
     }
 
-    /// The preview's backdrop colour in place of the checkerboard (linear).
+    /// The preview's backdrop colour in place of the checkerboard (linear),
+    /// given to the frame as the cut-out's key colour (`FrameParams::cutout_key`).
     pub(super) fn charsheet_backdrop(&self) -> Option<[f32; 3]> {
         let s = &self.settings.charsheet;
         (self.charsheet_owns_camera() && !s.transparent).then(|| s.background.map(egui::ecolor::linear_from_gamma))
