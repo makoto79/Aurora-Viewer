@@ -336,9 +336,17 @@ fn sky_stars(d: vec3<f32>, background: vec3<f32>, foot: SkyFootprint) -> vec3<f3
     return col * gain * extinction * glare;
 }
 
-// Textured (or analytic) disc of a heavenly body; rgb premultiplied, a coverage.
-fn body_disc(dir: vec3<f32>, body: vec3<f32>, half_size: f32, slot: u32) -> vec4<f32> {
+// Texel of a heavenly body's texture in direction `dir`, as stored: rgb in the
+// texture's sRGB, not premultiplied, a its alpha (0 outside the quad).
+// `radius` is LLHeavenBody's disc radius (SUN_DISK_RADIUS 0.5, the moon 0.9
+// of it). LLVOSky::updateHeavenlyBodyGeometry lays the quad at
+// HEAVENLY_BODY_DIST with half sides HEAVENLY_BODY_DIST x 0.1 x radius x
+// scale, wider and taller towards the horizon: as tangents, 0.1 x radius x
+// scale x (1 + 0.3 (1 - z)) across and (1 + 0.2 (1 - z)) up.
+fn body_disc(dir: vec3<f32>, body: vec3<f32>, radius: f32, scale: f32, slot: u32) -> vec4<f32> {
     let b = normalize(body);
+    let low = 1.0 - b.z;
+    let half_size = vec2<f32>(1.0 + low * 0.3, 1.0 + low * 0.2) * (0.1 * radius * scale);
     let mu = dot(dir, b);
     if (mu < 0.0) {
         return vec4<f32>(0.0);
@@ -354,8 +362,7 @@ fn body_disc(dir: vec3<f32>, body: vec3<f32>, half_size: f32, slot: u32) -> vec4
     if (any(uv < vec2<f32>(0.0)) || any(uv > vec2<f32>(1.0))) {
         return vec4<f32>(0.0);
     }
-    let t = sample_tex_level(slot, uv, 0.0);
-    return vec4<f32>(srgb_to_linear(t.rgb) * t.a, t.a);
+    return sample_tex_level(slot, uv, 0.0);
 }
 
 // Rainbow and 22° halo, port of skyF.glsl's rainbow() and halo22() (Second
@@ -415,23 +422,43 @@ fn sky_full_at(dir: vec3<f32>, foot: SkyFootprint) -> vec3<f32> {
     // skyF.glsl: added to the haze color before its x 2, under the clouds
     let haze = a.color + sky_rainbow(a.light_dot) + sky_halo(a.light_dot);
     var c = clamp(haze * 2.0, vec3<f32>(0.0), vec3<f32>(5.0));
+    // Sun then moon over the haze, under the clouds, like
+    // LLDrawPoolWLSky::renderHeavenlyBodies (lldrawpoolwlsky.cpp): plain alpha
+    // blending (BT_ALPHA) of the texel as stored, in the same space as the
+    // haze, so softenLightF's srgb_to_linear x sky_hdr_scale below applies to
+    // both. sunDiscF.glsl draws the texel as it is; moonF.glsl scales its rgb
+    // by the moon brightness, fades its alpha near the horizon and discards
+    // alpha <= 2/255. Premultiplying in linear and adding the sun x 6 (moon at
+    // 90 % opacity) blew soft halos out to a white disc with stepped rings and
+    // a visible quad (#2782).
+    var hidden = 0.0;
+    let sd = normalize(frame.sky_sun.xyz);
+    if (frame.tex_slots.y != 0u) {
+        let s = body_disc(d, sd, 0.5, frame.sky_sun.w, frame.tex_slots.y);
+        c = mix(c, s.rgb, s.a);
+        // the Legacy Viewer's sun quad writes depth and hides every star
+        // behind it, even where it is clear: here only as much as it covers
+        hidden = s.a;
+    }
+    if (frame.tex_slots.z != 0u) {
+        let md = normalize(frame.sky_moon.xyz);
+        let m = body_disc(d, md, 0.45, frame.sky_moon.w, frame.tex_slots.z);
+        if (m.a > 2.0 / 255.0) {
+            let fade = select(1.0, clamp(md.z * md.z * 4.0, 0.0, 1.0), md.z > 0.0);
+            c = mix(c, m.rgb * frame.sky_misc.z, m.a * fade);
+            // SL-14113: the moon's kept texels write depth, the stars behind
+            // them are hidden
+            hidden = 1.0;
+        }
+    }
     let clouds = sky_clouds(d);
     c = mix(c, clouds.rgb, clouds.a);
     var col = srgb_to_linear(c) * frame.sky_cloud_pd2.w;
     let cover = 1.0 - clouds.a;
-    // stars and Milky Way (above), and the aurora, behind the clouds
-    col += (sky_stars(d, col, foot) + aurora_sky(d)) * cover;
-    // moon
-    if (frame.tex_slots.z != 0u) {
-        let m = body_disc(d, frame.sky_moon.xyz, 0.035 * frame.sky_moon.w, frame.tex_slots.z);
-        col = col * (1.0 - m.a * 0.9 * cover) + m.rgb * frame.sky_misc.z * 2.0 * cover;
-    }
-    // sun
-    let sd = normalize(frame.sky_sun.xyz);
-    if (frame.tex_slots.y != 0u) {
-        let s = body_disc(d, sd, 0.025 * frame.sky_sun.w, frame.tex_slots.y);
-        col += s.rgb * 6.0 * cover;
-    } else {
+    // stars and Milky Way (above) behind the clouds and the sun and moon; the
+    // aurora, in the atmosphere, behind the clouds only
+    col += (sky_stars(d, col, foot) * (1.0 - hidden) + aurora_sky(d)) * cover;
+    if (frame.tex_slots.y == 0u) {
         let mu = dot(d, sd);
         let disk = smoothstep(0.99955, 0.9997, mu) * clamp(sd.z * 10.0 + 1.0, 0.0, 1.0);
         col += frame.sun_color.rgb * disk * 6.0 * cover;
@@ -892,7 +919,7 @@ fn terrain_color(in: TerrainOut) -> vec3<f32> {
         let a = ll_atmos(in.world_pos - frame.camera_pos.xyz);
         let hazed = ll_haze(ll_classic_diffuse(albedo, n, in.world_pos, sh, in.clip.xy, a) + wet_light + albedo*water_caustics(in.world_pos,n), a);
         var color=hazed*water_scene_light(in.world_pos);
-        if(camera_underwater() || (water_fx_on(256u) && in.world_pos.z<camera_water_level())){color=apply_fog(color,in.world_pos);}
+        if(water_fogs_source(in.world_pos)){color=apply_fog(color,in.world_pos);}
         return light_tiles_checked(debug_view(color, in.world_pos, n, dist, in.clip.xy), in.world_pos, in.clip.xy);
     }
     let col = shade_pbr(albedo, 0.0, mix(0.92,0.4,wet), 1.0, n, v, in.world_pos, sh, in.clip.xy, true) + wet_light + albedo*water_caustics(in.world_pos,n);
@@ -928,7 +955,7 @@ fn terrain_pbr_shaded(in: TerrainPbrOut) -> Shaded {
             + emissive) * ll_final_scale()
             + ll_classic_pbr_local(material.color.rgb, metal, rough, n, v, in.world_pos, in.clip.xy);
         color = ll_haze(color + material.color.rgb * water_caustics(in.world_pos, n), a);
-        if (camera_underwater() || (water_fx_on(256u) && in.world_pos.z < camera_water_level())) {
+        if (water_fogs_source(in.world_pos)) {
             color = apply_fog(color * water_scene_light(in.world_pos), in.world_pos);
         }
     } else {
@@ -1122,9 +1149,10 @@ fn analytic_wave(p: vec2<f32>, t: f32) -> vec3<f32> {
 }
 
 // Reuse opaque depth/color: no second scene render or GPU/CPU synchronization.
+// The water fog a point of the scene copy already holds (apply_fog).
 fn water_source_fog(source:vec3<f32>)->WaterFog {
-    if(!water_fx_on(256u) && !camera_underwater()){return WaterFog(vec3<f32>(0.0),vec3<f32>(1.0));}
-    return water_fog_view(source-frame.camera_pos.xyz,frame.water_normal.w);
+    if(!water_fogs_source(source)){return WaterFog(vec3<f32>(0.0),vec3<f32>(1.0));}
+    return water_fog_view(source-frame.camera_pos.xyz,water_source_density());
 }
 
 // Rays cover the same 200 m at every quality, with finer steps at high quality.
@@ -1427,13 +1455,20 @@ fn water_pixel(in: WaterOut) -> vec4<f32> {
     }
     var fb = textureSampleLevel(scene_tex, lin_clamp, distort2, 0.0).rgb;
     // Fog of the water volume between the surface and the refracted point.
-    let wf = water_fog_view(ref_pos - frame.camera_pos.xyz, frame.water_fog.w);
     if (water_fx_on(256u)) {
         let source_fog=water_source_fog(ref_pos);
         fb=max(fb-source_fog.color,vec3<f32>(0.0))/max(source_fog.transmission,vec3<f32>(0.05));
         let volume=water_fog_segment(ref_pos-in.world_pos,frame.water_normal.w,0.0,max(in.level-ref_pos.z,0.0));
         fb=fb*volume.transmission+volume.color;
-    } else { fb = fb * wf.transmission + wf.color; }
+    } else if (d1 <= 0.0) {
+        // Legacy fog: what lies under the water holds its own already, each
+        // layer by its own depth (water_fogs_source; waterF.glsl adds none
+        // to its screen copy). Only where nothing was drawn behind the
+        // surface (the void, the sky under the horizon) does the water take
+        // its fog here, to its far end.
+        let wf = water_fog_view(ref_pos - frame.camera_pos.xyz, frame.water_fog.w);
+        fb = fb * wf.transmission + wf.color;
+    }
 
     // reflection: planar texture, screen-space rays, or the sky
     var r = reflect(view_vec, normalize(mix(vec3<f32>(0.0, 0.0, 1.0), n, 0.6)));
@@ -2765,7 +2800,7 @@ fn snow_lying(world: vec3<f32>) -> f32 {
     // edge, never in the map's squares
     let st = rain_shelter_texel(world.xy, world.z);
     if (st.z < 0.5) {
-        let surface = textureLoad(rain_wetness, i, 0).x;
+        let surface = snow_known_surface(world.xy, i);
         if (surface < -1e8) { return depth; }
         return depth * snow_gate(world.z - surface);
     }
@@ -2779,8 +2814,9 @@ fn snow_lying(world: vec3<f32>) -> f32 {
     for (var k = 0; k < 16; k++) {
         var h = rain_shelter_height_at(s0 + vec2<i32>(k % 4 - 1, k / 4 - 1));
         if (h < -1e8) {
-            // beyond the map's reach: the height the memory keeps there
-            h = textureLoad(rain_wetness, i, 0).x;
+            // beyond the map's reach, or nothing drawn there (bare land):
+            // the height the memory keeps there, else the terrain's
+            h = snow_known_surface(world.xy, i);
             if (h < -1e8) { return depth; }
         }
         hs[k] = h;
@@ -2829,6 +2865,17 @@ fn snow_lying(world: vec3<f32>) -> f32 {
     }
     if (counted < 1e-3) { return 0.0; }
     return depth * clamp(taken / counted, 0.0, 1.0) * open;
+}
+
+// The surface the snow lies on at `xy` where the shelter map has none: the
+// height the memory keeps in its cell `i`, else the terrain's (-1e9: none
+// known). Without the terrain, a cell the memory had not seen yet (all of
+// them, just after the snow-fill button) laid the ground's snow on whatever
+// stood there, avatars too.
+fn snow_known_surface(xy: vec2<f32>, i: vec2<i32>) -> f32 {
+    let kept = textureLoad(rain_wetness, i, 0).x;
+    if (kept > -1e8) { return kept; }
+    return rain_terrain(xy);
 }
 
 // How much snow a point `at` metres above the topmost surface the snow
