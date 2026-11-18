@@ -43,6 +43,7 @@ fn volume_emphasis_reaches_conversations_toasts_links_emoji_and_search() {
                         kind,
                         source: uuid::Uuid::from_u128(7),
                         origin: Origin::Live,
+                        blocked: false,
                         beyond_range: false,
                     };
                     world.chat.clear();
@@ -73,6 +74,7 @@ fn volume_emphasis_reaches_conversations_toasts_links_emoji_and_search() {
                             emoji: &mut emoji,
                             pics: &pics,
                             world: &world,
+                            names: crate::world::names::NameScope::World,
                             want_names: &mut names,
                             wanted: &mut wanted,
                             own_name: "Speaker",
@@ -82,6 +84,7 @@ fn volume_emphasis_reaches_conversations_toasts_links_emoji_and_search() {
                             menu: None,
                             bubbles: (renderer == 2).then_some(true),
                             previews: None,
+                            moderators: None,
                         };
                         let look = view::Look {
                             header: true,
@@ -156,6 +159,7 @@ fn object_volume_changes_start_a_new_console_card() {
         kind: ChatKind::Object(volume),
         source: uuid::Uuid::from_u128(7),
         origin: Origin::Live,
+        blocked: false,
         beyond_range: false,
     };
     let lines = [line(ChatType::Normal), line(ChatType::Whisper), line(ChatType::Shout)];
