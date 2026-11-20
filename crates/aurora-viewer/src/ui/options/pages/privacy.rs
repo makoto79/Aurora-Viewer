@@ -152,16 +152,6 @@ pub(super) fn page(cx: &mut Cx) {
     use aurora_i18n::tr;
     account_group(cx);
     login_favorites_row(cx);
-    cx.choice(
-        tr!("poser-privacy"),
-        tr!("poser-privacy-hint"),
-        &field!(pose_requests.policy),
-        &[
-            (crate::world::poser_consent::Policy::Everyone, tr!("poser-policy-everyone"), false),
-            (crate::world::poser_consent::Policy::Friends, tr!("poser-policy-friends"), false),
-            (crate::world::poser_consent::Policy::Nobody, tr!("poser-policy-nobody"), false),
-        ],
-    );
     // Custom (ozlt-main) only: pose nearby avatars on this screen without asking.
     cx.toggle(
         tr!("poser-local-nearby"),
