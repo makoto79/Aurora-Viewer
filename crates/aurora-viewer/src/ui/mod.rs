@@ -27,6 +27,7 @@ pub mod beams;
 pub mod buy_currency;
 pub mod buy_land;
 pub mod call_invite;
+pub mod camera_position;
 pub mod charsheet;
 pub mod chat;
 pub mod chat_bubbles;
@@ -117,6 +118,7 @@ pub mod pay;
 pub mod people;
 pub mod perf;
 pub mod photo_reel;
+pub mod phototools;
 pub mod physics;
 pub mod place_card;
 pub mod place_details;
@@ -221,6 +223,7 @@ pub struct Panels {
     pub appearance: bool,
     pub avatar_studio: bool,
     pub ao: bool,
+    pub ao_mini: bool,
     pub people_tab: u8,
     /// The torn-off Contacts window (ContactsTornOff).
     pub contacts: bool,
@@ -257,6 +260,8 @@ pub struct Panels {
     pub avatar_welcome: bool,
     /// The Destination Guide (toolbar `destinations`, World › Destinations).
     pub destinations: bool,
+    /// "Phototools" (toolbar `phototools`).
+    pub phototools: bool,
     /// "Quick preferences" (toolbar `quickprefs`).
     pub quick_prefs: bool,
     /// The Director (toolbar `director`): its window and its timeline.
@@ -285,6 +290,10 @@ pub struct Panels {
     /// window).
     pub camera_controls: bool,
     pub movement_controls: bool,
+    /// The camera position window, from the Controls window's Position
+    /// button (LLFloaterPreferenceViewAdvanced); not kept across sessions,
+    /// like the Legacy Viewer's.
+    pub camera_position: bool,
     /// Navigation bar location being edited (text) and "just opened" (select all).
     pub nav_edit: Option<String>,
     pub nav_edit_new: bool,
@@ -300,6 +309,7 @@ impl Panels {
             chat: settings.show_chat,
             perf: settings.show_perf,
             debug_settings: false,
+            camera_position: false,
             dev_toolbox: false,
             sim_console: false,
             group_titles: false,
@@ -325,6 +335,7 @@ impl Panels {
             appearance: settings.show_appearance,
             avatar_studio: false,
             ao: settings.show_ao,
+            ao_mini: false,
             people_tab: settings.people_tab.min(1),
             // FSFloaterContacts::onOpen: torn off, Contacts is its own window
             // (ContactsTornOff). Closing that window puts the flag back to
@@ -350,6 +361,7 @@ impl Panels {
             web_browser: false,
             avatar_welcome: false,
             destinations: false,
+            phototools: false,
             quick_prefs: false,
             director: false,
             second_camera: false,

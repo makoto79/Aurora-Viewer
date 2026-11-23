@@ -1099,6 +1099,9 @@ fn charsheet_studio_light(fp: &mut aurora_render::FrameParams, rig: &studio::Rig
             radius,
             falloff: studio::FALLOFF,
             projector: None,
+            // studio lamps, as the avatar studio's: no emitter, a point source
+            source_radius: 0.0,
+            source_id: 0,
         })
         .collect();
     fp.spot_shadows.fill(None);
