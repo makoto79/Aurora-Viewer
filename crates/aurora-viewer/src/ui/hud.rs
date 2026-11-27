@@ -529,7 +529,7 @@ pub fn draw(
         if !world.parcel_object_visible(idx)
             || !crate::snapshot::isolate::object_visible(world, idx)
             || world.photo_isolation.capture().is_some()
-            || world.is_mirror(&o.full_id)
+            || world.is_local_copy(&o.full_id)
         {
             continue;
         }

@@ -255,6 +255,7 @@ const BEFORE: &[&str] = &[
     "confirm_object_bonus",
     "confirm_return_to_owner",
     "confirm_attachment_drop",
+    "confirm_close_all_ims",
     "confirm_script_modify",
     "region_check_texture_heights",
     "sim_version_alert",
@@ -326,6 +327,7 @@ const BEFORE: &[&str] = &[
     "chat_bar",
     "chat_toast_seconds",
     "chat_console_max_lines",
+    "chat_lines_direction",
     "chat_bubbles",
     "chat_bubbles_hide_console",
     "typing_bubbles",
@@ -2045,6 +2047,8 @@ fn a_borrowed_row_edits_the_setting_of_its_page() {
 fn the_confirmations_page_lists_every_question_and_warning() {
     use aurora_i18n::tr;
     let mut frames = Frames::new();
+    // This fixture draws the entire page without the preferences window's scroll area.
+    frames.screen_size.y = 1400.0;
     let (mut s, mut st, mut r) = (Settings::default(), OptionsUi::default(), OptionsResult::default());
     s.gpu_driver_dismissed = "32.0.15.6094".into();
     s.debug_settings_warning_ignored = true;
@@ -2055,6 +2059,7 @@ fn the_confirmations_page_lists_every_question_and_warning() {
     }
     let shows = |key: &str| texts.iter().any(|t| t.source == key);
     for key in [
+        tr!("ui-chat-confirm-close-all-ims"),
         tr!("task-transfer-warn-move"),
         tr!("task-transfer-warn-scripted"),
         tr!("ui-options-confirm-no-transfer-settings"),
@@ -2066,6 +2071,7 @@ fn the_confirmations_page_lists_every_question_and_warning() {
         tr!("ui-options-fly-override-caution"),
         tr!("ui-options-driver-warning"),
         tr!("ui-options-skipped-update"),
+        tr!("ui-options-warn-live-preview"),
         "32.0.15.6094",
     ] {
         assert!(shows(key), "{key} on Confirmations");
@@ -2100,7 +2106,7 @@ fn the_confirmations_page_lists_every_question_and_warning() {
         })
         .expect("a Show again button")
         .rect;
-    assert!(again.bottom() < 900.0, "the button is on the test screen");
+    assert!(again.bottom() < frames.screen_size.y, "the button is on the test screen");
     for events in click(again.center()) {
         page_frame(&mut frames, &mut s, &mut st, &mut r, Page::Confirmations, 0, events);
     }
